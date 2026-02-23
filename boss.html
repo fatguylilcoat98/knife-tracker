@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dispatch: Knife Accurate Edges</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+    
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #f8f9fa; }
+        .card { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        input, textarea { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        button { width: 100%; padding: 15px; background: #007bff; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        h2 { margin-top: 0; color: #333; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>Dispatch New Route</h2>
+        <input type="text" id="locName" placeholder="Location Name (e.g., Bistro 42)">
+        <input type="text" id="chefName" placeholder="Chef's Name">
+        <input type="text" id="address" placeholder="Full Address">
+        <input type="text" id="phone" placeholder="Phone Number">
+        <textarea id="notes" placeholder="Terms / Special Instructions (e.g., Net 30, 15 degree edge)"></textarea>
+        <button onclick="dispatchRoute()">Send to Chris</button>
+    </div>
+
+    <script>
+        // ==========================================
+        // YOUR ACTUAL FIREBASE CONFIG
+        // ==========================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyAhAewGyf_XXw2JSLuIW7u710PFZTvEHUA",
+            authDomain: "accurate-edges.firebaseapp.com",
+            databaseURL: "https://accurate-edges-default-rtdb.firebaseio.com",
+            projectId: "accurate-edges",
+            storageBucket: "accurate-edges.firebasestorage.app",
+            messagingSenderId: "218979244497",
+            appId: "1:218979244497:web:6c47f47feb0803e97368f0",
+            measurementId: "G-0CBDN80BK5"
+        };
+        
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        function dispatchRoute() {
+            const locName = document.getElementById('locName').value;
+            if(!locName) return alert("Please enter at least a location name.");
+
+            const data = {
+                location: locName,
+                chef: document.getElementById('chefName').value,
+                address: document.getElementById('address').value,
+                phone: document.getElementById('phone').value,
+                notes: document.getElementById('notes').value,
+                status: "pending",
+                timestamp: Date.now()
+            };
+            
+            db.ref('routes').push(data);
+            alert("Route Sent to Chris!");
+            
+            // Clear the form after sending
+            document.querySelectorAll('input, textarea').forEach(el => el.value = '');
+        }
+    </script>
+</body>
+</html>
