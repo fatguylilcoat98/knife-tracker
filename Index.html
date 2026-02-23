@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Knife Accurate Edges: Chris Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <style>
+        :root { --steel: #4a4e69; --silver: #c9ada7; --bg: #22223b; --green: #4ade80; }
+        body { font-family: system-ui; background: var(--bg); color: #f2e9e4; margin: 0; padding: 15px; }
+        .card { background: var(--steel); padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        h2 { margin: 0; color: var(--green); font-size: 2rem; }
+        input, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: none; font-size: 1rem; box-sizing: border-box; }
+        input { background: #f2e9e4; color: #22223b; }
+        .btn-scan { background: #9a8c98; color: white; font-weight: bold; }
+        .btn-save { background: var(--green); color: #22223b; font-weight: bold; }
+        #status { font-size: 0.9rem; color: var(--silver); text-align: center; margin: 5px; display: none; }
+        .entry { background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid var(--silver); }
+        #preview { width: 100%; max-height: 150px; object-fit: contain; display: none; border-radius: 8px; }
+    </style>
+</head>
+<body>
+
+    <div style="max-width: 500px; margin: auto;">
+        <h1 style="text-align:center; font-size: 1.2rem; color: var(--silver);">KNIFE ACCURATE EDGES</h1>
+        
+        <div class="card">
+            <span>2-Week Commission Total</span>
+            <h2 id="grandTotal">$0.00</h2>
+        </div>
+
+        <div class="card">
+            <label style="font-weight:bold">Step 1: Scan Invoice</label>
+            <input type="file" id="photoFile" accept="image/*" capture="environment" class="btn-scan">
+            <div id="status">Scanning text... please wait...</div>
+            <img id="preview" src="">
+            
+            <hr style="border: 0; border-top: 1px solid var(--silver); margin: 20px 0;">
+            
+            <label style="font-weight:bold">Step 2: Verify & Save</label>
+            <input type="text" id="locInput" placeholder="Location Name">
+            <input type="number" id="amtInput" step="0.01" placeholder="Invoice Total $">
+            <button class="btn-save" onclick="saveData()">Save to My Ledger</button>
+        </div>
+
+        <div id="history">
+            <h3 style="border-bottom: 1px solid var(--silver)">Recent Stops</h3>
+            </div>
+    </div>
+
+<script>
+    let logs = JSON.parse(localStorage.getItem('chris_knife_logs')) || [];
+
+    // Trigger OCR when photo is taken
+    document.getElementById('photoFile').onchange = async function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const status = document.getElementById('status');
+        const preview = document.getElementById('preview');
+        preview.src = URL.createObjectURL(file);
+        preview.style.display = "block";
+        status.style.display = "block";
+
+        try {
+            const worker = await Tesseract.createWorker('eng');
+            const { data: { text } } = await worker.recognize(file);
+            await worker.terminate();
+
+            console.log("Raw Text:", text);
+
+            // LOGIC: Find the largest number with a decimal (usually the Total)
+            const prices = text.match(/\d+\.\d{2}/g);
+            if (prices) {
+                const largest = Math.max(...prices.map(Number));
+                document.getElementById('amtInput').value = largest.toFixed(2);
+            }
+
+            // Guess location from first non-empty line
+            const lines = text.split('\n').filter(l => l.trim().length > 3);
+            if (lines.length > 0) {
+                document.getElementById('locInput').value = lines[0].trim();
+            }
+
+        } catch (err) {
+            console.error(err);
+            alert("Scan failed. Please enter manually.");
+        }
+        status.style.display = "none";
+    };
+
+    function saveData() {
+        const loc = document.getElementById('locInput').value;
+        const amt = parseFloat(document.getElementById('amtInput').value);
+        
+        if (!loc || isNaN(amt)) return alert("Check location and amount.");
+
+        logs.unshift({ loc, amt, date: new Date().toLocaleDateString() });
+        localStorage.setItem('chris_knife_logs', JSON.stringify(logs));
+        
+        // Reset
+        document.getElementById('locInput').value = '';
+        document.getElementById('amtInput').value = '';
+        document.getElementById('preview').style.display = 'none';
+        render();
+    }
+
+    function render() {
+        const history = document.getElementById('history');
+        const totalDisp = document.getElementById('grandTotal');
+        let total = 0;
+        
+        const existing = history.querySelectorAll('.entry');
+        existing.forEach(e => e.remove());
+
+        logs.forEach(item => {
+            const comm = item.amt * 0.20; // 20%
+            total += comm;
+            const div = document.createElement('div');
+            div.className = 'entry';
+            div.innerHTML = `<div><strong>${item.loc}</strong><br><small>${item.date}</small></div><div style="color:var(--green)">$${comm.toFixed(2)}</div>`;
+            history.appendChild(div);
+        });
+        totalDisp.innerText = `$${total.toFixed(2)}`;
+    }
+
+    render();
+</script>
+</body>
+</html>
