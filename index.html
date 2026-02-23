@@ -4,9 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Knife Accurate Edges: Chris Tracker</title>
+    
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+    
     <style>
-        :root { --steel: #4a4e69; --silver: #c9ada7; --bg: #22223b; --green: #4ade80; }
+        :root { --steel: #4a4e69; --silver: #c9ada7; --bg: #22223b; --green: #4ade80; --blue: #3a86ff; }
         body { font-family: system-ui; background: var(--bg); color: #f2e9e4; margin: 0; padding: 15px; }
         .card { background: var(--steel); padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
         h2 { margin: 0; color: var(--green); font-size: 2rem; }
@@ -17,6 +22,14 @@
         #status { font-size: 0.9rem; color: var(--silver); text-align: center; margin: 5px; display: none; }
         .entry { background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid var(--silver); }
         #preview { width: 100%; max-height: 150px; object-fit: contain; display: none; border-radius: 8px; }
+        
+        /* Dispatch Route Styles */
+        .route-card { background: #16213e; padding: 15px; border-radius: 12px; border-left: 6px solid var(--blue); margin-bottom: 10px; }
+        .btn-group { display: flex; gap: 10px; margin-top: 10px; }
+        .action-btn { flex: 1; padding: 12px; border-radius: 8px; border: none; font-weight: bold; text-decoration: none; text-align: center; color: white; font-size: 0.9rem; }
+        .call { background: var(--green); color: #1a1a2e; }
+        .nav { background: var(--blue); }
+        .notes { font-size: 0.85rem; color: #adb5bd; margin-top: 8px; border-top: 1px solid #2d3436; padding-top: 8px; }
     </style>
 </head>
 <body>
@@ -24,6 +37,11 @@
     <div style="max-width: 500px; margin: auto;">
         <h1 style="text-align:center; font-size: 1.2rem; color: var(--silver);">KNIFE ACCURATE EDGES</h1>
         
+        <div class="card" style="border: 1px solid var(--blue);">
+            <h3 style="margin-top:0; color:var(--blue); font-size: 1.2rem;">Current Route</h3>
+            <div id="routeList">Waiting for dispatch from boss...</div>
+        </div>
+
         <div class="card">
             <span>2-Week Commission Total</span>
             <h2 id="grandTotal">$0.00</h2>
@@ -45,10 +63,61 @@
 
         <div id="history">
             <h3 style="border-bottom: 1px solid var(--silver)">Recent Stops</h3>
-            </div>
+        </div>
     </div>
 
 <script>
+    // ==========================================
+    // YOUR ACTUAL FIREBASE CONFIG
+    // ==========================================
+    const firebaseConfig = {
+        apiKey: "AIzaSyAhAewGyf_XXw2JSLuIW7u710PFZTvEHUA",
+        authDomain: "accurate-edges.firebaseapp.com",
+        databaseURL: "https://accurate-edges-default-rtdb.firebaseio.com",
+        projectId: "accurate-edges",
+        storageBucket: "accurate-edges.firebasestorage.app",
+        messagingSenderId: "218979244497",
+        appId: "1:218979244497:web:6c47f47feb0803e97368f0",
+        measurementId: "G-0CBDN80BK5"
+    };
+    
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // Listen for routes from the Boss
+    db.ref('routes').on('value', (snapshot) => {
+        const list = document.getElementById('routeList');
+        const data = snapshot.val();
+        
+        if (!data) {
+            list.innerHTML = "No active stops.";
+            return;
+        }
+
+        list.innerHTML = "";
+        for (let id in data) {
+            const stop = data[id];
+            if(stop.status === "pending") {
+                list.innerHTML += `
+                    <div class="route-card">
+                        <strong style="font-size: 1.1rem;">${stop.location}</strong><br>
+                        <small>Chef: ${stop.chef}</small>
+                        <div class="notes">${stop.address}</div>
+                        <div class="notes"><strong>Notes:</strong> ${stop.notes}</div>
+                        <div class="btn-group">
+                            <a href="tel:${stop.phone}" class="action-btn call">📞 Call</a>
+                            <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(stop.address)}" class="action-btn nav">📍 Map</a>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+    });
+
+    // ==========================================
+    // YOUR SCANNER & TRACKER LOGIC
+    // ==========================================
     let logs = JSON.parse(localStorage.getItem('chris_knife_logs')) || [];
 
     // Trigger OCR when photo is taken
