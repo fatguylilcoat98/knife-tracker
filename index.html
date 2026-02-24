@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
-<title>Accurate Edges - Route Manager</title>
+<title>Accurate Edges AI - Master Edition</title>
 
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
@@ -11,12 +11,9 @@
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;800&display=swap" rel="stylesheet">
 
-<script
-  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBZ33GrowzU4ZyLTodjB7w55XAnqGQm7rM&libraries=places&callback=initPlacesAutocomplete"
-  async defer>
-</script>
+<script src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&libraries=places&callback=initPlacesAutocomplete" async defer></script>
 
 <style>
   :root {
@@ -32,267 +29,101 @@
     --text-dim: #6b7280;
     --border: rgba(192,200,216,0.12);
     --glow: 0 0 20px rgba(0,229,255,0.25);
-    --glow2: 0 0 20px rgba(255,107,53,0.25);
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Exo 2', sans-serif; overflow-x: hidden; min-height: 100vh; }
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Exo 2', sans-serif;
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-
+  /* Background Texture */
   body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background: 
-      repeating-linear-gradient(0deg, transparent, transparent 60px, rgba(0,229,255,0.015) 60px, rgba(0,229,255,0.015) 61px),
-      repeating-linear-gradient(90deg, transparent, transparent 60px, rgba(0,229,255,0.015) 60px, rgba(0,229,255,0.015) 61px);
-    pointer-events: none;
-    z-index: 0;
+    content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 60px, rgba(0,229,255,0.015) 60px, rgba(0,229,255,0.015) 61px),
+                repeating-linear-gradient(90deg, transparent, transparent 60px, rgba(0,229,255,0.015) 60px, rgba(0,229,255,0.015) 61px);
   }
 
-  /* Header */
-  .app-header {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    background: rgba(10,12,15,0.97);
-    backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--border);
-    padding: 0 14px;
-  }
+  /* Header & Navigation */
+  .app-header { position: sticky; top: 0; z-index: 100; background: rgba(10,12,15,0.95); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 10px 14px; }
+  .header-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+  .header-logo-block { display: flex; align-items: center; gap: 10px; }
+  .header-logo-block img { height: 42px; width: auto; filter: drop-shadow(0 0 8px rgba(0,229,255,0.2)); }
+  .brand-name { font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 1.2rem; letter-spacing: 2.5px; color: var(--accent); text-shadow: var(--glow); line-height: 1; }
+  .brand-sub { font-family: 'Share Tech Mono', monospace; font-size: 0.6rem; color: var(--text-dim); text-transform: uppercase; }
 
-  .header-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 0 8px;
-    gap: 10px;
-  }
+  /* 3-Role Toggle */
+  .role-toggle { display: flex; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .role-btn { padding: 6px 10px; border: none; background: transparent; color: var(--text-dim); font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 0.75rem; cursor: pointer; transition: 0.2s; }
+  .role-btn.active { background: var(--accent); color: #000; }
 
-  .header-logo-block {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex: 1;
-  }
+  .nav-tabs { display: flex; overflow-x: auto; scrollbar-width: none; border-top: 1px solid var(--border); padding-top: 5px; }
+  .nav-tabs::-webkit-scrollbar { display: none; }
+  .tab-btn { flex: 0 0 auto; padding: 10px 14px; border: none; background: transparent; color: var(--text-dim); font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 0.8rem; text-transform: uppercase; cursor: pointer; border-bottom: 2px solid transparent; }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-btn.hidden { display: none !important; }
 
-  .header-logo-block img {
-    height: 42px;
-    width: auto;
-    filter: drop-shadow(0 0 8px rgba(0,229,255,0.2));
-  }
+  /* App Content & Cards */
+  #app-content { position: relative; z-index: 1; padding: 16px; max-width: 600px; margin: 0 auto; min-height: calc(100vh - 120px); }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+  .card-title { font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 0.8rem; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .card-title::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, var(--border), transparent); }
 
-  .brand-name {
-    font-family: 'Rajdhani', sans-serif;
-    font-weight: 700;
-    font-size: 1.2rem;
-    letter-spacing: 2.5px;
-    color: var(--accent);
-    text-shadow: var(--glow);
-  }
-
-  .brand-sub {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 0.58rem;
-    color: var(--text-dim);
-    text-transform: uppercase;
-  }
-
-  /* Role Toggle */
-  .role-toggle {
-    display: flex;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    overflow: hidden;
-  }
-
-  .role-btn {
-    padding: 7px 12px;
-    border: none;
-    background: transparent;
-    color: var(--text-dim);
-    font-family: 'Rajdhani', sans-serif;
-    font-weight: 600;
-    font-size: 0.8rem;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .role-btn.active {
-    background: var(--accent);
-    color: #000;
-  }
-
-  /* Tabs */
-  .tab-bar {
-    display: flex;
-    overflow-x: auto;
-    border-top: 1px solid var(--border);
-    scrollbar-width: none;
-  }
-
-  .tab-btn {
-    flex: 0 0 auto;
-    padding: 10px 14px;
-    border: none;
-    background: transparent;
-    color: var(--text-dim);
-    font-family: 'Rajdhani', sans-serif;
-    font-weight: 600;
-    font-size: 0.78rem;
-    text-transform: uppercase;
-    cursor: pointer;
-    border-bottom: 2px solid transparent;
-  }
-
-  .tab-btn.active {
-    color: var(--accent);
-    border-bottom-color: var(--accent);
-  }
-
-  .tab-btn.hidden { display: none; }
-
-  /* Content */
-  #app-content {
-    padding: 16px;
-    max-width: 700px;
-    margin: 0 auto;
-    position: relative;
-    z-index: 1;
-  }
-
-  .tab-panel { display: none; }
-  .tab-panel.active { display: block; }
-
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 16px;
-    margin-bottom: 16px;
-  }
-
-  .card-title {
-    font-family: 'Rajdhani', sans-serif;
-    font-weight: 700;
-    font-size: 0.75rem;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: var(--accent);
-    margin-bottom: 14px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .card-title::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: linear-gradient(90deg, var(--border), transparent);
-  }
-
-  /* Forms */
+  /* Forms & Inputs */
   .form-group { margin-bottom: 12px; }
-  label { font-size: 0.72rem; color: var(--text-dim); text-transform: uppercase; display: block; margin-bottom: 4px; }
-  input, select, textarea {
-    width: 100%;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--text);
-    padding: 10px;
-    font-family: 'Exo 2', sans-serif;
-  }
-
+  label { display: block; font-size: 0.72rem; font-weight: 600; letter-spacing: 1px; color: var(--text-dim); margin-bottom: 4px; text-transform: uppercase; }
+  input, select, textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'Exo 2', sans-serif; font-size: 0.95rem; padding: 10px 12px; outline: none; }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(0,229,255,0.15); }
+  
   /* Buttons */
-  .btn {
-    width: 100%;
-    padding: 12px;
-    border-radius: 8px;
-    border: none;
-    font-family: 'Rajdhani', sans-serif;
-    font-weight: 700;
-    text-transform: uppercase;
-    cursor: pointer;
-    margin-top: 8px;
-  }
-
-  .btn-primary { background: var(--accent); color: #000; box-shadow: var(--glow); }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 12px 20px; border: none; border-radius: 8px; font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 0.9rem; text-transform: uppercase; cursor: pointer; width: 100%; margin-top: 8px; transition: 0.2s; }
+  .btn-primary { background: var(--accent); color: #000; }
   .btn-green { background: var(--accent3); color: #000; }
-  .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+  .btn-orange { background: var(--accent2); color: #fff; }
   .btn-danger { background: var(--danger); color: #fff; }
+  .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+  .btn-sm { padding: 8px 14px; font-size: 0.8rem; margin-top: 0; width: auto; }
 
   /* Dispatch Checklist */
-  .dispatch-checklist {
-    background: var(--surface2);
-    border-radius: 10px;
-    max-height: 300px;
-    overflow-y: auto;
-    border: 1px solid var(--border);
-  }
+  .dispatch-search-wrap { position: relative; margin-bottom: 10px; }
+  .dispatch-search-wrap input { padding-left: 38px; }
+  .dispatch-search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-dim); }
+  .dispatch-checklist { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; max-height: 300px; overflow-y: auto; }
+  .dispatch-check-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-bottom: 1px solid var(--border); cursor: pointer; user-select: none; }
+  .dispatch-check-item input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--accent); cursor: pointer; }
+  .dispatch-check-name { font-family: 'Rajdhani', sans-serif; font-weight: 600; font-size: 1rem; color: var(--text); }
+  
+  /* Stops & Routing */
+  .stop-item { background: var(--surface2); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 8px; padding: 14px; margin-bottom: 10px; cursor: pointer; }
+  .stop-name { font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 1.1rem; color: var(--text); margin-bottom: 4px; }
+  .stop-actions { display: flex; gap: 10px; margin-top: 10px; }
+  .nav-btn { background: #4285F4; color: #fff; border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; font-family: 'Rajdhani', sans-serif; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 5px; font-size: 0.85rem; width: 100%; justify-content: center; }
 
-  .dispatch-check-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px;
-    border-bottom: 1px solid var(--border);
-  }
-
-  /* Payroll Tiers */
-  .payroll-summary {
-    background: linear-gradient(135deg, rgba(0,229,255,0.1), rgba(57,255,20,0.05));
-    border-radius: 12px;
-    padding: 20px;
-    text-align: center;
-    border: 1px solid var(--border);
-  }
-
-  .payroll-check { font-family: 'Share Tech Mono', monospace; font-size: 2.5rem; color: var(--accent3); }
-
-  .tier-row { display: flex; justify-content: space-between; padding: 6px 10px; border-radius: 4px; font-size: 0.8rem; }
-  .active-tier { background: rgba(57,255,20,0.2); color: var(--accent3); font-weight: bold; }
+  /* Translator */
+  .voice-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+  #typeInput { height: 80px; resize: none; }
+  #translationDisplay { background: rgba(0,229,255,0.05); border: 1px dashed var(--accent); color: var(--accent); min-height: 60px; padding: 12px; border-radius: 8px; line-height: 1.4; font-size: 1.05rem; }
 
   /* Modal */
-  .modal-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.85);
-    z-index: 200;
-    padding: 20px;
-  }
-  .modal-overlay.active { display: flex; align-items: center; justify-content: center; }
-  .modal-box { background: var(--surface); border-radius: 16px; width: 100%; max-width: 500px; padding: 20px; border: 1px solid var(--border); }
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 200; overflow-y: auto; padding: 20px; }
+  .modal-overlay.active { display: block; }
+  .modal-box { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; margin: 20px auto; max-width: 500px; padding: 16px; }
+  .worksheet-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
 
-  /* Utilities */
-  .badge { padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: 700; }
-  .badge-cod { background: var(--accent2); color: #fff; }
-  .badge-cash { background: var(--accent3); color: #000; }
-  .badge-ar { background: var(--accent); color: #000; }
+  /* OCR */
+  .ocr-zone { border: 2px dashed var(--border); border-radius: 10px; padding: 15px; text-align: center; margin-bottom: 10px; cursor: pointer; }
+  .ocr-bar { height: 4px; background: var(--accent); width: 0%; transition: 0.3s; margin-top: 5px; display: none; }
 
-  #toast {
-    position: fixed;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: var(--surface2);
-    border: 1px solid var(--accent);
-    padding: 10px 20px;
-    border-radius: 8px;
-    opacity: 0;
-    transition: 0.3s;
-    z-index: 1000;
-  }
+  /* Payroll */
+  .payroll-summary { background: linear-gradient(135deg, rgba(0,229,255,0.08), rgba(57,255,20,0.05)); border: 1px solid var(--border); border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 16px; }
+  .payroll-check { font-family: 'Share Tech Mono', monospace; font-size: 2.2rem; color: var(--accent3); font-weight: 700; text-shadow: 0 0 20px rgba(57,255,20,0.4); margin-bottom: 10px; }
+  .tier-row { display: flex; justify-content: space-between; padding: 8px; border-radius: 6px; font-size: 0.85rem; }
+  .active-tier { background: rgba(57,255,20,0.15); color: var(--accent3); font-weight: 700; border: 1px solid rgba(57,255,20,0.3); }
+
+  #toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--accent); color: #000; padding: 10px 20px; border-radius: 8px; font-weight: 700; font-size: 0.85rem; opacity: 0; transition: 0.3s; z-index: 1000; }
   #toast.show { opacity: 1; }
+
+  .badge { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; }
+  .badge-ar { background: rgba(0,229,255,0.15); color: var(--accent); }
 </style>
 </head>
 <body>
@@ -300,262 +131,501 @@
 <div class="app-header">
   <div class="header-top">
     <div class="header-logo-block">
-      <img src="1771924165353.jpeg" alt="Logo">
+      <img src="1771924165353.jpeg" alt="Accurate Edges" onerror="this.style.display='none'">
       <div>
         <div class="brand-name">ACCURATE EDGES</div>
-        <div class="brand-sub">Route Manager</div>
+        <div class="brand-sub">Est. 1993 · AI Route Manager</div>
       </div>
     </div>
     <div class="role-toggle">
-      <button class="role-btn" id="btnDriver" onclick="setRole('driver')">DRIVER</button>
+      <button class="role-btn" id="btnAdmin" onclick="setRole('admin')">ADMIN</button>
       <button class="role-btn" id="btnBoss" onclick="setRole('boss')">BOSS</button>
+      <button class="role-btn active" id="btnDriver" onclick="setRole('driver')">DRIVER</button>
     </div>
   </div>
-  <div class="tab-bar">
-    <button class="tab-btn hidden" id="tab-dispatch" onclick="showTab('dispatch')">Dispatch</button>
-    <button class="tab-btn" id="tab-route" onclick="showTab('route')">Route</button>
+  
+  <div class="nav-tabs" id="tabBar">
+    <button class="tab-btn" id="tab-dispatch" onclick="showTab('dispatch')">Dispatch</button>
+    <button class="tab-btn active" id="tab-route" onclick="showTab('route')">Route</button>
     <button class="tab-btn" id="tab-translator" onclick="showTab('translator')">Translate</button>
-    <button class="tab-btn" id="tab-roster" onclick="showTab('roster')">Roster</button>
     <button class="tab-btn" id="tab-payroll" onclick="showTab('payroll')">Payroll</button>
+    <button class="tab-btn" id="tab-roster" onclick="showTab('roster')">Roster</button>
   </div>
 </div>
 
 <div id="app-content">
-  <div class="tab-panel" id="panel-dispatch">
+
+  <div class="panel" id="panel-dispatch">
     <div class="card">
-      <div class="card-title">Build Today's Route</div>
-      <input type="text" id="dispatchSearch" placeholder="Search clients..." oninput="renderDispatchList()" style="margin-bottom:10px;">
+      <div class="card-title">📡 Dispatch Route</div>
+      
+      <div class="form-group">
+        <label>1. Select Driver</label>
+        <select id="dispatchTarget">
+          <option value="driver">Chris (Driver)</option>
+          <option value="boss">Boss (Self)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>2. Select Clients</label>
+        <div class="dispatch-search-wrap">
+          <span class="dispatch-search-icon">🔍</span>
+          <input type="search" id="dispatchSearch" placeholder="Filter roster..." oninput="filterDispatchList()">
+        </div>
+      </div>
+
       <div class="dispatch-checklist" id="dispatchChecklist"></div>
-      <button class="btn btn-primary" onclick="dispatchRoute()">Dispatch Now</button>
+      <button class="btn btn-primary" onclick="dispatchRoute()">⚡ SEND ROUTE</button>
     </div>
   </div>
 
-  <div class="tab-panel" id="panel-route">
+  <div class="panel active" id="panel-route">
     <div class="card">
-      <div class="card-title">Active Stops</div>
-      <div id="liveRouteList"></div>
+      <div class="card-title">🔴 Live Route</div>
+      <div id="liveRouteList">
+        <div style="text-align:center; padding:20px; color:var(--text-dim);">No active route found.</div>
+      </div>
     </div>
   </div>
 
-  <div class="tab-panel" id="panel-payroll">
-    <div class="payroll-summary">
-      <div class="brand-sub">Estimated Paycheck</div>
-      <div class="payroll-check" id="paycheck">$600.00</div>
-      <div id="payrollStats" style="font-size: 0.8rem; color: var(--text-dim); margin-top: 10px;"></div>
+  <div class="panel" id="panel-translator">
+    <div class="card">
+      <div class="card-title">🌐 AI Interpreter</div>
+      <div class="voice-grid">
+        <button class="btn btn-primary btn-sm" onclick="startAIAction('en-US', 'es-LA')">🎤 EN → ESP</button>
+        <button class="btn btn-orange btn-sm" onclick="startAIAction('es-LA', 'en-US')">🎤 ESP → EN</button>
+      </div>
+      <textarea id="typeInput" placeholder="Translation will appear here..."></textarea>
+      <div id="translationDisplay"><em>Waiting for voice input...</em></div>
+      <button class="btn btn-outline btn-sm" style="margin-top:10px;" onclick="translateManual()">Translate Typed Text</button>
     </div>
-    <div class="card" style="margin-top:16px;">
-      <div class="card-title">Commission Tiers</div>
+  </div>
+
+  <div class="panel" id="panel-payroll">
+    <div class="payroll-summary">
+      <div style="font-size:0.75rem; color:var(--text-dim); letter-spacing:1px; margin-bottom:5px;">ESTIMATED PAYCHECK</div>
+      <div class="payroll-check" id="paycheck">$600.00</div>
+      <div style="font-size:0.85rem; color:var(--accent);">
+        Sales: <span id="totalSales">$0.00</span> | Tier: <span id="commissionPct">25.0%</span>
+      </div>
+    </div>
+    
+    <div class="card">
+      <div class="card-title">📊 Commission Schedule</div>
       <div id="tierTable"></div>
     </div>
   </div>
 
-  <div class="tab-panel" id="panel-roster">
+  <div class="panel" id="panel-roster">
     <div class="card">
-        <div class="card-title">Add Client</div>
-        <input type="text" id="r_name" placeholder="Business Name">
-        <input type="text" id="r_address" placeholder="Address">
+      <div class="card-title">➕ Add Client</div>
+      <div class="form-group">
+        <label>Business Name (Google Autofill)</label>
+        <input type="text" id="r_name" placeholder="Start typing...">
+      </div>
+      <div class="form-group">
+        <label>Address</label>
+        <input type="text" id="r_address">
+      </div>
+      <div class="form-group">
+        <label>Phone</label>
+        <input type="text" id="r_phone">
+      </div>
+      <div class="form-group">
+        <label>Terms</label>
         <select id="r_terms">
-            <option value="C.O.D.">C.O.D.</option>
-            <option value="Cash">Cash</option>
-            <option value="AR / On Acct">AR / On Account</option>
+          <option value="C.O.D.">C.O.D.</option>
+          <option value="Cash">Cash</option>
+          <option value="AR / On Acct">AR / On Account</option>
         </select>
-        <button class="btn btn-primary" onclick="saveClient()">Save Client</button>
+      </div>
+      <button class="btn btn-green" onclick="saveClient()">💾 SAVE TO DB</button>
     </div>
     <div id="rosterList"></div>
   </div>
 
-  <div class="tab-panel" id="panel-translator">
-    <div class="card">
-        <div class="card-title">Spanish Translator</div>
-        <textarea id="typeInput" placeholder="Type here..."></textarea>
-        <button class="btn btn-primary" onclick="translateTyped('en','es')">Translate to Spanish</button>
-        <div id="translationDisplay" class="card" style="margin-top:10px; min-height:50px;"></div>
-    </div>
-  </div>
 </div>
 
 <div class="modal-overlay" id="logStopModal">
   <div class="modal-box">
-    <div class="card-title" id="modalClientName">Log Stop</div>
+    <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
+      <h3 style="color:var(--accent); margin:0;" id="modalClientName">Log Stop</h3>
+      <button style="background:none; border:none; color:white; font-size:1.2rem; cursor:pointer;" onclick="closeModal()">✕</button>
+    </div>
+
+    <div class="ocr-zone" onclick="document.getElementById('ocrInput').click()">
+      <div style="font-size:1.5rem;">📸</div>
+      <div style="font-size:0.8rem; color:var(--text-dim);">Tap to scan invoice total</div>
+      <input type="file" id="ocrInput" accept="image/*" capture="environment" onchange="runOCR(event)">
+      <div class="ocr-bar" id="ocrBar"></div>
+    </div>
+
     <div class="form-group">
       <label>Invoice Total ($)</label>
       <input type="number" id="m_invoice" step="0.01">
     </div>
-    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-        <div class="form-group"><label>Checks/AR</label><input type="number" id="m_checks" step="0.01"></div>
-        <div class="form-group"><label>Cash</label><input type="number" id="m_cash" step="0.01"></div>
+    
+    <div class="worksheet-grid">
+      <div class="form-group"><label>Checks/AR</label><input type="number" id="m_checks" step="0.01"></div>
+      <div class="form-group"><label>Cash</label><input type="number" id="m_cash" step="0.01"></div>
+      <div class="form-group"><label>Petty Cash</label><input type="number" id="m_petty" step="0.01"></div>
     </div>
-    <button class="btn btn-green" onclick="completeStop()">Complete & Log</button>
-    <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+
+    <button class="btn btn-primary" onclick="completeStop()">✅ Complete & Log</button>
   </div>
 </div>
 
 <div id="toast"></div>
 
 <script>
-// 1. CONFIGURATION (REPLACE THESE)
+// ════════════════════════════════════════════════
+//  CONFIGURATION — INSERT YOUR KEYS HERE
+// ════════════════════════════════════════════════
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
+  apiKey: "YOUR_FIREBASE_API_KEY",
   authDomain: "YOUR_PROJECT.firebaseapp.com",
   databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
   projectId: "YOUR_PROJECT",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
   appId: "YOUR_APP_ID"
 };
+
+const GEMINI_KEY = "YOUR_GEMINI_API_KEY"; // For the Interpreter
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// 2. PAYROLL LOGIC (EXACT CONTRACT TIERS)
-const TIERS = [
-  { min: 0,    max: 6999,  pct: 25.0 },
-  { min: 7000, max: 7499,  pct: 27.5 },
-  { min: 7500, max: 7999,  pct: 30.0 },
-  { min: 8000, max: 8499,  pct: 32.5 },
-  { min: 8500, max: 8999,  pct: 35.5 },
-  { min: 9000, max: 9749,  pct: 38.0 },
-  { min: 9750, max: 99999, pct: 40.0 }
-];
-
+// ════════════════════════════════════════════════
+//  APP STATE & ROLES
+// ════════════════════════════════════════════════
+let currentRole = 'driver'; // 'admin', 'boss', 'driver'
+let activeTarget = 'driver'; // Whose route we are looking at
 let rosterData = {};
-let liveRoute = {};
+let liveRouteData = {};
+let dispatchSelected = new Set();
 let currentStopKey = null;
 
-// 3. CORE FUNCTIONS
+const TIERS = [
+  { min: 0,    max: 6499.99, pct: 25.0, label: '$0 - $6,499' },
+  { min: 6500, max: 6999.99, pct: 25.0, label: '$6,500 - $6,999' },
+  { min: 7000, max: 7499.99, pct: 27.5, label: '$7,000 - $7,499' },
+  { min: 7500, max: 7999.99, pct: 30.0, label: '$7,500 - $7,999' },
+  { min: 8000, max: 8499.99, pct: 32.5, label: '$8,000 - $8,499' },
+  { min: 8500, max: 8999.99, pct: 35.5, label: '$8,500 - $8,999' },
+  { min: 9000, max: 9749.99, pct: 38.0, label: '$9,000 - $9,749' },
+  { min: 9750, max: Infinity, pct: 40.0, label: '$9,750+' }
+];
+
 function setRole(role) {
-  document.getElementById('btnDriver').classList.toggle('active', role === 'driver');
-  document.getElementById('btnBoss').classList.toggle('active', role === 'boss');
-  document.getElementById('tab-dispatch').classList.toggle('hidden', role !== 'boss');
-  showTab(role === 'boss' ? 'dispatch' : 'route');
+  currentRole = role;
+  activeTarget = (role === 'boss') ? 'boss' : 'driver';
+
+  document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('btn' + role.charAt(0).toUpperCase() + role.slice(1)).classList.add('active');
+
+  // Tab Visibility Logic
+  document.getElementById('tab-dispatch').classList.toggle('hidden', role === 'driver');
+  document.getElementById('tab-roster').classList.toggle('hidden', role !== 'admin');
+  document.getElementById('tab-payroll').classList.toggle('hidden', role === 'boss');
+
+  // Default redirect
+  if(role === 'admin' || role === 'boss') showTab('dispatch');
+  else showTab('route');
+
+  // Re-listen to the correct route based on who is logged in
+  listenToRoute(activeTarget);
 }
 
-function showTab(tab) {
-  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+function showTab(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('panel-' + tab).classList.add('active');
-  document.getElementById('tab-' + tab).classList.add('active');
+  document.getElementById('panel-' + id).classList.add('active');
+  document.getElementById('tab-' + id).classList.add('active');
 }
 
-// Firebase Listeners
+// ════════════════════════════════════════════════
+//  FIREBASE LISTENERS & RENDERING
+// ════════════════════════════════════════════════
 db.ref('roster').on('value', snap => {
   rosterData = snap.val() || {};
-  renderRoster();
-  renderDispatchList();
+  renderDispatchChecklist('');
+  renderRosterList();
 });
 
-db.ref('live_route').on('value', snap => {
-  liveRoute = snap.val() || {};
-  renderLiveRoute();
-});
+let routeRef = null;
+function listenToRoute(target) {
+  if (routeRef) routeRef.off();
+  routeRef = db.ref('live_route/' + target);
+  routeRef.on('value', snap => {
+    liveRouteData = snap.val() || {};
+    renderLiveRoute();
+  });
+}
 
 db.ref('payroll_logs').on('value', snap => {
   calculatePayroll(snap.val() || {});
 });
 
-function saveClient() {
-  const name = document.getElementById('r_name').value;
-  if(!name) return;
-  db.ref('roster').push({
-    name: name,
-    address: document.getElementById('r_address').value,
-    terms: document.getElementById('r_terms').value
-  });
-  toast("Client Added");
+// ════════════════════════════════════════════════
+//  DISPATCH (Boss / Admin)
+// ════════════════════════════════════════════════
+function renderDispatchChecklist(filterText) {
+  const container = document.getElementById('dispatchChecklist');
+  const lowerFilter = filterText.toLowerCase();
+  
+  const html = Object.keys(rosterData).filter(k => 
+    rosterData[k].name.toLowerCase().includes(lowerFilter)
+  ).map(k => {
+    const c = rosterData[k];
+    const isChecked = dispatchSelected.has(k) ? 'checked' : '';
+    return `
+      <div class="dispatch-check-item" onclick="toggleDispatch('${k}')">
+        <input type="checkbox" ${isChecked} onclick="event.stopPropagation(); toggleDispatch('${k}')">
+        <div>
+          <div class="dispatch-check-name">${c.name} <span class="badge badge-ar">${c.terms||''}</span></div>
+          <div style="font-size:0.75rem; color:var(--text-dim);">${c.address||''}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+  
+  container.innerHTML = html || '<div style="padding:15px; text-align:center;">No clients found.</div>';
+}
+
+function filterDispatchList() {
+  renderDispatchChecklist(document.getElementById('dispatchSearch').value);
+}
+
+function toggleDispatch(key) {
+  if(dispatchSelected.has(key)) dispatchSelected.delete(key);
+  else dispatchSelected.add(key);
+  filterDispatchList();
 }
 
 function dispatchRoute() {
-  const selected = {};
-  document.querySelectorAll('.dispatch-check:checked').forEach(cb => {
-    selected[cb.value] = true;
-  });
-  db.ref('live_route').set(selected);
-  toast("Route Dispatched!");
+  if (dispatchSelected.size === 0) return toast("Select clients first!");
+  const target = document.getElementById('dispatchTarget').value; // 'driver' or 'boss'
+  
+  const routeObj = {};
+  dispatchSelected.forEach(k => { routeObj[k] = true; });
+  
+  db.ref('live_route/' + target).set(routeObj)
+    .then(() => {
+      toast(`Route sent to ${target.toUpperCase()}!`);
+      dispatchSelected.clear();
+      filterDispatchList();
+    });
 }
 
+// ════════════════════════════════════════════════
+//  LIVE ROUTE & NAVIGATION (All Roles)
+// ════════════════════════════════════════════════
+function renderLiveRoute() {
+  const container = document.getElementById('liveRouteList');
+  const keys = Object.keys(liveRouteData);
+  
+  if (!keys.length) {
+    container.innerHTML = `<div style="text-align:center; padding:30px; color:var(--text-dim);">No stops active for ${activeTarget.toUpperCase()}.</div>`;
+    return;
+  }
+
+  container.innerHTML = keys.map(k => {
+    const c = rosterData[k] || { name: 'Unknown', address: '', terms: '' };
+    const navUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(c.address || c.name)}`;
+    
+    return `
+      <div class="stop-item">
+        <div class="stop-name">${c.name}</div>
+        <div style="font-size:0.8rem; color:var(--text-dim); margin-bottom:10px;">${c.address} <span class="badge badge-ar" style="margin-left:5px;">${c.terms}</span></div>
+        <div class="stop-actions">
+          <a href="${navUrl}" target="_blank" class="nav-btn">🗺️ NAVIGATE</a>
+          <button class="btn btn-green btn-sm" style="width:100%; margin:0;" onclick="openStop('${k}')">📝 LOG STOP</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ════════════════════════════════════════════════
+//  LOG STOP & OCR
+// ════════════════════════════════════════════════
 function openStop(key) {
   currentStopKey = key;
   document.getElementById('modalClientName').innerText = rosterData[key].name;
+  ['m_invoice','m_checks','m_cash','m_petty'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('logStopModal').classList.add('active');
+}
+
+function closeModal() { document.getElementById('logStopModal').classList.remove('active'); }
+
+async function runOCR(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const bar = document.getElementById('ocrBar');
+  bar.style.display = 'block'; bar.style.width = '0%';
+  toast("Scanning...");
+  
+  try {
+    const result = await Tesseract.recognize(file, 'eng', { logger: m => { if(m.status==='recognizing text') bar.style.width = (m.progress*100)+'%'; }});
+    const nums = [...result.data.text.matchAll(/\$?\d{1,6}(?:,\d{3})*(?:\.\d{2})/g)].map(m => parseFloat(m[0].replace(/[$,]/g, '')));
+    if (nums.length > 0) {
+      document.getElementById('m_invoice').value = Math.max(...nums).toFixed(2);
+      toast("Total Found!");
+    } else {
+      toast("No numbers found.");
+    }
+  } catch (e) { toast("OCR Failed"); }
+  setTimeout(() => bar.style.display = 'none', 1000);
 }
 
 function completeStop() {
   const inv = parseFloat(document.getElementById('m_invoice').value) || 0;
+  
   db.ref('payroll_logs').push({
     amount: inv,
-    cash: parseFloat(document.getElementById('m_cash').value) || 0,
     checks: parseFloat(document.getElementById('m_checks').value) || 0,
+    cash: parseFloat(document.getElementById('m_cash').value) || 0,
+    petty: parseFloat(document.getElementById('m_petty').value) || 0,
     client: rosterData[currentStopKey].name,
     timestamp: Date.now()
   });
-  db.ref('live_route/' + currentStopKey).remove();
+  
+  db.ref(`live_route/${activeTarget}/${currentStopKey}`).remove();
   closeModal();
+  toast("Stop Logged!");
 }
 
+// ════════════════════════════════════════════════
+//  PAYROLL MATH
+// ════════════════════════════════════════════════
 function calculatePayroll(logs) {
   let totalSales = 0;
-  Object.values(logs).forEach(l => totalSales += l.amount);
+  Object.values(logs).forEach(l => totalSales += (l.amount || 0));
   
-  let pct = 25;
+  let pct = 25.0;
   TIERS.forEach(t => { if(totalSales >= t.min) pct = t.pct; });
   
-  const commission = totalSales * (pct / 100);
-  const totalPay = 600 + commission;
+  const comm = totalSales * (pct / 100);
+  const paycheck = 600 + comm;
   
-  document.getElementById('paycheck').innerText = "$" + totalPay.toFixed(2);
-  document.getElementById('payrollStats').innerText = `Sales: $${totalSales.toFixed(2)} | Tier: ${pct}%`;
-  renderTierTable(pct);
+  document.getElementById('totalSales').innerText = `$${totalSales.toFixed(2)}`;
+  document.getElementById('commissionPct').innerText = `${pct.toFixed(1)}%`;
+  document.getElementById('paycheck').innerText = `$${paycheck.toFixed(2)}`;
+  
+  // Render Tiers (skip the redundant $0-$6499 one for display)
+  const displayTiers = TIERS.slice(1);
+  document.getElementById('tierTable').innerHTML = displayTiers.map(t => `
+    <div class="tier-row ${t.pct === pct ? 'active-tier' : ''}">
+      <span>${t.label}</span>
+      <span>${t.pct.toFixed(1)}% ${t.pct === pct ? '← HERE' : ''}</span>
+    </div>
+  `).join('');
 }
 
-// Helpers
-function closeModal() { document.getElementById('logStopModal').classList.remove('active'); }
-function toast(msg) { 
+// ════════════════════════════════════════════════
+//  AI TRANSLATOR (Gemini + Voice)
+// ════════════════════════════════════════════════
+const synth = window.speechSynthesis;
+window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.getVoices(); };
+
+function startAIAction(sourceLang, targetLang) {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return toast("Voice not supported on this browser.");
+  
+  const recognition = new SR();
+  recognition.lang = sourceLang;
+  toast("Listening...");
+  recognition.start();
+
+  recognition.onresult = async (event) => {
+    const text = event.results[0][0].transcript;
+    document.getElementById('typeInput').value = text;
+    processGemini(text, sourceLang, targetLang);
+  };
+}
+
+function translateManual() {
+  const text = document.getElementById('typeInput').value;
+  if(text) processGemini(text, 'en-US', 'es-LA');
+}
+
+async function processGemini(text, from, to) {
+  const prompt = `You are a translator for Accurate Edges, a knife sharpening business. Translate from ${from} to ${to}. Use technical terms for blades/knives/scissors. ONLY output the translation. Text: ${text}`;
+  document.getElementById('translationDisplay').innerHTML = "<em>Translating...</em>";
+
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+    });
+    const data = await res.json();
+    const result = data.candidates[0].content.parts[0].text.trim();
+    
+    document.getElementById('translationDisplay').innerText = result;
+    speakText(result, to);
+  } catch (e) { toast("API Error"); }
+}
+
+function speakText(text, langCode) {
+  if (synth.speaking) synth.cancel();
+  const utter = new SpeechSynthesisUtterance(text);
+  const voices = synth.getVoices();
+  const bestVoice = voices.find(v => v.lang.includes(langCode.split('-')[0]) && (v.name.includes('Google') || v.name.includes('Enhanced')));
+  if (bestVoice) utter.voice = bestVoice;
+  utter.rate = 0.95;
+  synth.speak(utter);
+}
+
+// ════════════════════════════════════════════════
+//  ROSTER (Admin) & PLACES AUTOCOMPLETE
+// ════════════════════════════════════════════════
+function initPlacesAutocomplete() {
+  const input = document.getElementById('r_name');
+  if(!input || typeof google === 'undefined') return;
+  const auto = new google.maps.places.Autocomplete(input, { types: ['establishment'] });
+  auto.addListener('place_changed', () => {
+    const p = auto.getPlace();
+    if(p.name) document.getElementById('r_name').value = p.name;
+    if(p.formatted_address) document.getElementById('r_address').value = p.formatted_address;
+    if(p.formatted_phone_number) document.getElementById('r_phone').value = p.formatted_phone_number;
+  });
+}
+
+function saveClient() {
+  const name = document.getElementById('r_name').value;
+  if(!name) return;
+  const key = name.replace(/[^a-zA-Z0-9]/g, '_');
+  db.ref('roster/' + key).set({
+    name: name,
+    address: document.getElementById('r_address').value,
+    phone: document.getElementById('r_phone').value,
+    terms: document.getElementById('r_terms').value
+  }).then(() => {
+    toast("Client Added!");
+    ['r_name','r_address','r_phone'].forEach(id => document.getElementById(id).value = '');
+  });
+}
+
+function renderRosterList() {
+  const el = document.getElementById('rosterList');
+  el.innerHTML = Object.keys(rosterData).map(k => `
+    <div class="card" style="padding:10px; margin-bottom:8px;">
+      <div style="font-weight:bold;">${rosterData[k].name} <span class="badge badge-ar">${rosterData[k].terms}</span></div>
+      <div style="font-size:0.75rem; color:var(--text-dim);">${rosterData[k].address}</div>
+    </div>
+  `).join('');
+}
+
+function toast(msg) {
   const t = document.getElementById('toast');
   t.innerText = msg; t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 2000);
 }
 
-function renderRoster() {
-    const el = document.getElementById('rosterList');
-    el.innerHTML = Object.keys(rosterData).map(k => `
-        <div class="card">${rosterData[k].name} <span class="badge badge-ar">${rosterData[k].terms}</span></div>
-    `).join('');
-}
-
-function renderDispatchList() {
-    const el = document.getElementById('dispatchChecklist');
-    el.innerHTML = Object.keys(rosterData).map(k => `
-        <div class="dispatch-check-item">
-            <input type="checkbox" class="dispatch-check" value="${k}">
-            <label>${rosterData[k].name}</label>
-        </div>
-    `).join('');
-}
-
-function renderLiveRoute() {
-    const el = document.getElementById('liveRouteList');
-    el.innerHTML = Object.keys(liveRoute).map(k => {
-        const client = rosterData[k] || {name: "Unknown"};
-        return `<div class="card" onclick="openStop('${k}')">📍 ${client.name}</div>`;
-    }).join('');
-}
-
-function renderTierTable(activePct) {
-    const el = document.getElementById('tierTable');
-    el.innerHTML = TIERS.map(t => `
-        <div class="tier-row ${t.pct === activePct ? 'active-tier' : ''}">
-            <span>$${t.min}+</span> <span>${t.pct}%</span>
-        </div>
-    `).join('');
-}
-
-function translateTyped(from, to) {
-    const text = document.getElementById('typeInput').value;
-    fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|es`)
-    .then(r => r.json()).then(d => {
-        document.getElementById('translationDisplay').innerText = d.responseData.translatedText;
-    });
-}
-
-function initPlacesAutocomplete() {} // Placeholder for script callback
+// Start app
+setRole('driver');
 </script>
 </body>
 </html>
