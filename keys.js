@@ -1,18 +1,18 @@
 const APP_KEYS = {
   // 1. Your Firebase Keys
   firebase: {
-    apiKey: "YOUR_FIREBASE_API_KEY",
-    authDomain: "YOUR_PROJECT.firebaseapp.com",
-    databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
-    projectId: "YOUR_PROJECT",
-    storageBucket: "YOUR_PROJECT.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
+    apiKey: "AIzaSyAhAewGyf_XXw2JSLuIW7u710PFZTvEHUA",
+    authDomain: "accurate-edges.firebaseapp.com",
+    databaseURL: "https://accurate-edges-default-rtdb.firebaseio.com",
+    projectId: "accurate-edges",
+    storageBucket: "accurate-edges.firebasestorage.app",
+    messagingSenderId: "218979244497",
+    appId: "1:218979244497:web:6c47f47feb0803e97368f0"
   },
   
   // 2. Your Gemini AI Key (for the translator)
-  gemini: "YOUR_GEMINI_API_KEY",
+  gemini: "AIzaSyD4tcmQ4HQqDzaIROWKIrfcRo7dy1xUV2M",
 
   // 3. Your Google Maps Key (for the address auto-fill)
-  googleMaps: "YOUR_GOOGLE_MAPS_API_KEY"
+  googleMaps: "AIzaSyBZ33GrowzU4ZyLTodjB7w55XAnqGQm7rM"
 };
