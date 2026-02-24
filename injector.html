@@ -2,45 +2,41 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Database Injector</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BladeRoute Pro - Data Injector</title>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0a0c0f; color: #d8dde8; text-align: center; padding: 40px; }
+        .container { background: #111318; padding: 30px; border-radius: 12px; border: 1px solid #1e222c; max-width: 600px; margin: 0 auto; }
+        button { background: #00e5ff; color: #000; font-weight: bold; font-size: 1.2rem; padding: 15px 30px; border: none; border-radius: 8px; cursor: pointer; text-transform: uppercase; margin-top: 20px; }
+        button:hover { background: #33ecff; box-shadow: 0 0 15px rgba(0, 229, 255, 0.4); }
+        #status { margin-top: 20px; font-weight: bold; font-size: 1.1rem; }
+    </style>
 </head>
-<body style="font-family: sans-serif; padding: 20px; text-align: center;">
-    <h2>Client Injector</h2>
-    <button onclick="injectData()" style="padding: 15px 30px; font-size: 1.2rem; background: #007bff; color: white; border: none; border-radius: 8px; cursor: pointer;">Inject Roster Data</button>
-    <p id="status"></p>
+<body>
 
-    <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyAhAewGyf_XXw2JSLuIW7u710PFZTvEHUA",
-            authDomain: "accurate-edges.firebaseapp.com",
-            databaseURL: "https://accurate-edges-default-rtdb.firebaseio.com",
-            projectId: "accurate-edges",
-            storageBucket: "accurate-edges.firebasestorage.app",
-            messagingSenderId: "218979244497",
-            appId: "1:218979244497:web:6c47f47feb0803e97368f0"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
+    <div class="container">
+        <h2 style="color: #00e5ff; margin-bottom: 10px;">HISTORICAL DATA INJECTOR</h2>
+        <p>This will load your master client roster into the new BladeRoute Pro database format.</p>
+        
+        <script>
+            // PASTE YOUR FIREBASE CONFIG HERE
+            const firebaseConfig = {
+                apiKey: "YOUR_API_KEY",
+                authDomain: "YOUR_AUTH_DOMAIN",
+                databaseURL: "YOUR_DATABASE_URL",
+                projectId: "YOUR_PROJECT_ID",
+                storageBucket: "YOUR_STORAGE_BUCKET",
+                messagingSenderId: "YOUR_SENDER_ID",
+                appId: "YOUR_APP_ID"
+            };
+            
+            firebase.initializeApp(firebaseConfig);
+            const db = firebase.database();
 
-        const clientsData = {
-            "Nugget_Elk_Grove": { name: "Nugget Elk Grove", address: "7101 Elk Grove Blvd", terms: "AR / On Acct", inventory: "1sc, 42K, 4 ROBO, 2pw" },
-            "Xulo_Coffee": { name: "Xulo Coffee", address: "8698 Elk Grove Blvd", terms: "Cash", inventory: "Knives, Jap mando" },
-            "Florez_Grille": { name: "Florez Grille", address: "5900 S Land Park Dr", terms: "C.O.D.", inventory: "11K, 1 PWR" },
-            "Bartley_Cavanaugh": { name: "Bartley Cavanaugh", address: "8301 Freeport Blvd", terms: "AR / On Acct", inventory: "15K" },
-            "Cafe_Bernardo": { name: "Cafe Bernardo", address: "Pavilions", terms: "AR / On Acct", inventory: "24K, 3 Jap mando, 1 French mando, 1 ROBO" },
-            "Nugget_Mace_Blvd": { name: "Nugget Mace Blvd", address: "Mace Blvd", terms: "AR / On Acct", inventory: "9K, 4 ROBO, 28K, 1 PW" },
-            "Beach_Hut_Deli": { name: "Beach Hut Deli", address: "Folsom", terms: "C.O.D. (Min $60)", inventory: "No inventory noted" }
-        };
-
-        function injectData() {
-            document.getElementById('status').innerText = "Injecting...";
-            db.ref('roster').update(clientsData).then(() => {
-                document.getElementById('status').innerText = "SUCCESS! Clients loaded.";
-                document.getElementById('status').style.color = "green";
-            }).catch(err => alert(err));
-        }
-    </script>
-</body>
-</html>
+            // The exact client list structured for Claude's app
+            const clientsData = {
+                "Nugget_Elk_Grove": { name: "Nugget Elk Grove", address: "7101 Elk Grove Blvd, Elk Grove CA 95758", terms: "AR / On Acct", phone: "", chef: "" },
+                "Xulo_Coffee": { name: "Xulo Coffee", address: "8698 Elk Grove Blvd, Elk Grove CA 95624", terms: "Cash", phone: "", chef: "" },
+                "Bartley_Cavanaugh": { name: "Bartley Cavanaugh", address: "8301 Freeport Blvd", terms: "AR / On Acct",
