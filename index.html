@@ -3,73 +3,90 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Knife Accurate Edges: Chris Tracker</title>
+    <title>Accurate Edges Tracker</title>
     
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-    
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
     
     <style>
-        :root { --steel: #4a4e69; --silver: #c9ada7; --bg: #22223b; --green: #4ade80; --blue: #3a86ff; }
-        body { font-family: system-ui; background: var(--bg); color: #f2e9e4; margin: 0; padding: 15px; }
-        .card { background: var(--steel); padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
-        h2 { margin: 0; color: var(--green); font-size: 2rem; }
-        input, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: none; font-size: 1rem; box-sizing: border-box; }
-        input { background: #f2e9e4; color: #22223b; }
-        .btn-scan { background: #9a8c98; color: white; font-weight: bold; }
-        .btn-save { background: var(--green); color: #22223b; font-weight: bold; }
-        #status { font-size: 0.9rem; color: var(--silver); text-align: center; margin: 5px; display: none; }
-        .entry { background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid var(--silver); }
-        #preview { width: 100%; max-height: 150px; object-fit: contain; display: none; border-radius: 8px; }
+        :root { --bg: #1e1e2f; --card: #2a2a40; --text: #f8f8f2; --green: #50fa7b; --blue: #8be9fd; --red: #ff5555; }
+        body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; padding-bottom: 80px; }
         
-        /* Dispatch Route Styles */
-        .route-card { background: #16213e; padding: 15px; border-radius: 12px; border-left: 6px solid var(--blue); margin-bottom: 10px; }
-        .btn-group { display: flex; gap: 10px; margin-top: 10px; }
-        .action-btn { flex: 1; padding: 12px; border-radius: 8px; border: none; font-weight: bold; text-decoration: none; text-align: center; color: white; font-size: 0.9rem; }
-        .call { background: var(--green); color: #1a1a2e; }
-        .nav { background: var(--blue); }
-        .notes { font-size: 0.85rem; color: #adb5bd; margin-top: 8px; border-top: 1px solid #2d3436; padding-top: 8px; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 15px; }
+        .tab-btn { flex: 1; padding: 12px; background: var(--card); color: var(--text); border: 1px solid #444; border-radius: 8px; font-weight: bold; text-align: center; cursor: pointer; }
+        .tab-btn.active { background: var(--blue); color: var(--bg); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        .card { background: var(--card); padding: 15px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        input, select, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: none; font-size: 1rem; box-sizing: border-box; }
+        input, select { background: #fff; color: #333; }
+        .btn-action { background: var(--blue); color: var(--bg); font-weight: bold; }
+        .btn-success { background: var(--green); color: var(--bg); font-weight: bold; }
+        
+        .info-box { background: rgba(0,0,0,0.2); padding: 10px; border-radius: 6px; border-left: 4px solid var(--blue); margin: 10px 0; font-size: 0.9rem; }
+        #status { color: var(--green); text-align: center; font-weight: bold; display: none; }
+        #preview { width: 100%; max-height: 150px; object-fit: contain; display: none; border-radius: 8px; margin-bottom: 10px; }
+        
+        .list-item { background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; margin-top: 10px; border-left: 4px solid var(--green); display: flex; justify-content: space-between; align-items: center; }
     </style>
 </head>
 <body>
 
-    <div style="max-width: 500px; margin: auto;">
-        <h1 style="text-align:center; font-size: 1.2rem; color: var(--silver);">KNIFE ACCURATE EDGES</h1>
-        
-        <div class="card" style="border: 1px solid var(--blue);">
-            <h3 style="margin-top:0; color:var(--blue); font-size: 1.2rem;">Current Route</h3>
-            <div id="routeList">Waiting for dispatch from boss...</div>
+    <h1 style="text-align:center; font-size: 1.2rem; color: var(--blue);">ACCURATE EDGES</h1>
+
+    <div class="tabs">
+        <div class="tab-btn active" onclick="switchTab('daily')">Daily Log</div>
+        <div class="tab-btn" onclick="switchTab('payroll')">Payroll Check</div>
+    </div>
+
+    <div id="daily" class="tab-content active">
+        <div class="card">
+            <h3>Step 1: Select Client</h3>
+            <select id="clientDropdown" onchange="loadClientDetails()">
+                <option value="">-- Loading Clients... --</option>
+            </select>
+            
+            <div id="clientInfoBox" class="info-box" style="display:none;">
+                <strong>Address:</strong> <span id="displayAddress"></span><br>
+                <strong>Terms:</strong> <span id="displayTerms"></span><br>
+                <strong>Inventory:</strong> <span id="displayInv"></span>
+            </div>
         </div>
 
         <div class="card">
-            <span>2-Week Commission Total</span>
-            <h2 id="grandTotal">$0.00</h2>
-        </div>
-
-        <div class="card">
-            <label style="font-weight:bold">Step 1: Scan Invoice</label>
-            <input type="file" id="photoFile" accept="image/*" capture="environment" class="btn-scan">
-            <div id="status">Scanning text... please wait...</div>
+            <h3>Step 2: Scan Invoice</h3>
+            <input type="file" id="photoFile" accept="image/*" capture="environment" class="btn-action">
+            <div id="status">Reading Invoice Total... ⌛</div>
             <img id="preview" src="">
             
-            <hr style="border: 0; border-top: 1px solid var(--silver); margin: 20px 0;">
-            
-            <label style="font-weight:bold">Step 2: Verify & Save</label>
-            <input type="text" id="locInput" placeholder="Location Name">
-            <input type="number" id="amtInput" step="0.01" placeholder="Invoice Total $">
-            <button class="btn-save" onclick="saveData()">Save to My Ledger</button>
+            <input type="number" id="amtInput" step="0.01" placeholder="Invoice Total ($)">
+            <button class="btn-success" onclick="saveStop()">Log Stop</button>
         </div>
+    </div>
 
-        <div id="history">
-            <h3 style="border-bottom: 1px solid var(--silver)">Recent Stops</h3>
+    <div id="payroll" class="tab-content">
+        <div class="card" style="text-align: center;">
+            <p style="margin:0; color:var(--blue); font-weight:bold;">Total Sales This Period</p>
+            <h2 id="totalSales" style="color:white; font-size:2rem; margin:5px 0;">$0.00</h2>
+            <p id="commissionRate" style="margin:0; font-size:0.9rem; color:#888;">Current Rate: 25%</p>
+            
+            <hr style="border-color:#444; margin:15px 0;">
+            
+            <p style="margin:0; color:var(--green); font-weight:bold;">Estimated Paycheck</p>
+            <h1 id="grandTotal" style="color:var(--green); font-size:3rem; margin:10px 0;">$600.00</h1>
+            <p style="margin:0; font-size:0.8rem; color:#888;">Includes $600 Base Pay</p>
+        </div>
+        
+        <div class="card">
+            <h3 style="margin:0;">Recent Stops</h3>
+            <div id="payrollList" style="margin-top:15px;">No stops logged.</div>
         </div>
     </div>
 
 <script>
-    // ==========================================
-    // YOUR ACTUAL FIREBASE CONFIG
-    // ==========================================
+    // Firebase Configuration
     const firebaseConfig = {
         apiKey: "AIzaSyAhAewGyf_XXw2JSLuIW7u710PFZTvEHUA",
         authDomain: "accurate-edges.firebaseapp.com",
@@ -81,46 +98,51 @@
         measurementId: "G-0CBDN80BK5"
     };
     
-    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // Listen for routes from the Boss
-    db.ref('routes').on('value', (snapshot) => {
-        const list = document.getElementById('routeList');
-        const data = snapshot.val();
+    let clients = {};
+    let payPeriodLogs = [];
+
+    // Tab Switching
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        event.currentTarget.classList.add('active');
+    }
+
+    // Load Roster
+    db.ref('roster').on('value', (snapshot) => {
+        clients = snapshot.val() || {};
+        const dropdown = document.getElementById('clientDropdown');
+        dropdown.innerHTML = '<option value="">-- Choose Account --</option>';
         
-        if (!data) {
-            list.innerHTML = "No active stops.";
+        Object.keys(clients).sort().forEach(key => {
+            const opt = document.createElement('option');
+            opt.value = key;
+            opt.innerText = clients[key].name;
+            dropdown.appendChild(opt);
+        });
+    });
+
+    function loadClientDetails() {
+        const key = document.getElementById('clientDropdown').value;
+        const infoBox = document.getElementById('clientInfoBox');
+        
+        if (!key) {
+            infoBox.style.display = 'none';
             return;
         }
 
-        list.innerHTML = "";
-        for (let id in data) {
-            const stop = data[id];
-            if(stop.status === "pending") {
-                list.innerHTML += `
-                    <div class="route-card">
-                        <strong style="font-size: 1.1rem;">${stop.location}</strong><br>
-                        <small>Chef: ${stop.chef}</small>
-                        <div class="notes">${stop.address}</div>
-                        <div class="notes"><strong>Notes:</strong> ${stop.notes}</div>
-                        <div class="btn-group">
-                            <a href="tel:${stop.phone}" class="action-btn call">📞 Call</a>
-                            <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(stop.address)}" class="action-btn nav">📍 Map</a>
-                        </div>
-                    </div>
-                `;
-            }
-        }
-    });
+        const c = clients[key];
+        document.getElementById('displayAddress').innerText = c.address || 'N/A';
+        document.getElementById('displayTerms').innerText = c.terms || 'N/A';
+        document.getElementById('displayInv').innerText = c.inventory || 'N/A';
+        infoBox.style.display = 'block';
+    }
 
-    // ==========================================
-    // YOUR SCANNER & TRACKER LOGIC
-    // ==========================================
-    let logs = JSON.parse(localStorage.getItem('chris_knife_logs')) || [];
-
-    // Trigger OCR when photo is taken
+    // OCR Scanner
     document.getElementById('photoFile').onchange = async function(e) {
         const file = e.target.files[0];
         if (!file) return;
@@ -136,64 +158,87 @@
             const { data: { text } } = await worker.recognize(file);
             await worker.terminate();
 
-            console.log("Raw Text:", text);
-
-            // LOGIC: Find the largest number with a decimal (usually the Total)
             const prices = text.match(/\d+\.\d{2}/g);
             if (prices) {
                 const largest = Math.max(...prices.map(Number));
                 document.getElementById('amtInput').value = largest.toFixed(2);
             }
-
-            // Guess location from first non-empty line
-            const lines = text.split('\n').filter(l => l.trim().length > 3);
-            if (lines.length > 0) {
-                document.getElementById('locInput').value = lines[0].trim();
-            }
-
         } catch (err) {
-            console.error(err);
-            alert("Scan failed. Please enter manually.");
+            alert("Scan failed. Enter total manually.");
         }
         status.style.display = "none";
     };
 
-    function saveData() {
-        const loc = document.getElementById('locInput').value;
+    // Logging & Commission Logic
+    function saveStop() {
+        const clientKey = document.getElementById('clientDropdown').value;
         const amt = parseFloat(document.getElementById('amtInput').value);
-        
-        if (!loc || isNaN(amt)) return alert("Check location and amount.");
 
-        logs.unshift({ loc, amt, date: new Date().toLocaleDateString() });
-        localStorage.setItem('chris_knife_logs', JSON.stringify(logs));
+        if (!clientKey || isNaN(amt)) return alert("Select a client and enter total.");
+
+        const newStop = {
+            id: Date.now(),
+            client: clients[clientKey].name,
+            total: amt,
+            date: new Date().toLocaleDateString()
+        };
+
+        db.ref('payroll_logs').push(newStop);
         
-        // Reset
-        document.getElementById('locInput').value = '';
+        document.getElementById('clientDropdown').value = '';
         document.getElementById('amtInput').value = '';
         document.getElementById('preview').style.display = 'none';
-        render();
-    }
-
-    function render() {
-        const history = document.getElementById('history');
-        const totalDisp = document.getElementById('grandTotal');
-        let total = 0;
+        document.getElementById('clientInfoBox').style.display = 'none';
         
-        const existing = history.querySelectorAll('.entry');
-        existing.forEach(e => e.remove());
-
-        logs.forEach(item => {
-            const comm = item.amt * 0.20; // 20%
-            total += comm;
-            const div = document.createElement('div');
-            div.className = 'entry';
-            div.innerHTML = `<div><strong>${item.loc}</strong><br><small>${item.date}</small></div><div style="color:var(--green)">$${comm.toFixed(2)}</div>`;
-            history.appendChild(div);
-        });
-        totalDisp.innerText = `$${total.toFixed(2)}`;
+        alert("Stop Logged!");
+        switchTab('payroll');
     }
 
-    render();
+    // Calculate Sliding Scale
+    function calculateCommission(totalSales) {
+        if (totalSales < 7000) return { rate: 0.25, amount: totalSales * 0.25 };
+        if (totalSales < 7500) return { rate: 0.275, amount: totalSales * 0.275 };
+        if (totalSales < 8000) return { rate: 0.30, amount: totalSales * 0.30 };
+        if (totalSales < 8500) return { rate: 0.325, amount: totalSales * 0.325 };
+        if (totalSales < 9000) return { rate: 0.355, amount: totalSales * 0.355 };
+        if (totalSales < 9750) return { rate: 0.38, amount: totalSales * 0.38 };
+        return { rate: 0.40, amount: totalSales * 0.40 };
+    }
+
+    // Load Payroll
+    db.ref('payroll_logs').on('value', (snapshot) => {
+        const list = document.getElementById('payrollList');
+        let totalSales = 0;
+        payPeriodLogs = [];
+        list.innerHTML = '';
+
+        const data = snapshot.val();
+        if (!data) return;
+
+        for (let key in data) {
+            payPeriodLogs.push({...data[key], dbKey: key});
+            totalSales += data[key].total;
+        }
+
+        payPeriodLogs.sort((a,b) => b.id - a.id).forEach(log => {
+            list.innerHTML += `
+                <div class="list-item">
+                    <div>
+                        <strong>${log.client}</strong><br>
+                        <small>${log.date}</small>
+                    </div>
+                    <div style="font-weight:bold;">$${log.total.toFixed(2)}</div>
+                </div>
+            `;
+        });
+
+        const comm = calculateCommission(totalSales);
+        const finalPaycheck = 600 + comm.amount;
+
+        document.getElementById('totalSales').innerText = `$${totalSales.toFixed(2)}`;
+        document.getElementById('commissionRate').innerText = `Current Rate: ${(comm.rate * 100).toFixed(1)}%`;
+        document.getElementById('grandTotal').innerText = `$${finalPaycheck.toFixed(2)}`;
+    });
 </script>
 </body>
 </html>
