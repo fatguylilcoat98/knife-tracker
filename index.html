@@ -3,21 +3,20 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
-<title>Accurate Edges</title>
+<title>Accurate Edges - Route Manager</title>
 
-<!-- Firebase Compat SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
 
-<!-- Tesseract.js -->
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
 
-<!-- Google Fonts -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;800&display=swap" rel="stylesheet">
 
-<!-- Google Places API \u2014 REPLACE YOUR_GOOGLE_MAPS_API_KEY -->
-<script src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&libraries=places" async defer onload="initPlacesAutocomplete()"></script>
+<script
+  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBZ33GrowzU4ZyLTodjB7w55XAnqGQm7rM&libraries=places&callback=initPlacesAutocomplete"
+  async defer>
+</script>
 
 <style>
   :root {
@@ -25,7 +24,6 @@
     --surface: #111318;
     --surface2: #181b22;
     --surface3: #1e222c;
-    --blade: #c0c8d8;
     --accent: #00e5ff;
     --accent2: #ff6b35;
     --accent3: #39ff14;
@@ -51,14 +49,14 @@
     content: '';
     position: fixed;
     inset: 0;
-    background:
+    background: 
       repeating-linear-gradient(0deg, transparent, transparent 60px, rgba(0,229,255,0.015) 60px, rgba(0,229,255,0.015) 61px),
       repeating-linear-gradient(90deg, transparent, transparent 60px, rgba(0,229,255,0.015) 60px, rgba(0,229,255,0.015) 61px);
     pointer-events: none;
     z-index: 0;
   }
 
-  /* \u2500\u2500\u2500 Header \u2500\u2500\u2500 */
+  /* Header */
   .app-header {
     position: sticky;
     top: 0;
@@ -66,14 +64,14 @@
     background: rgba(10,12,15,0.97);
     backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--border);
-    padding: 0 16px;
+    padding: 0 14px;
   }
 
   .header-top {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 0 6px;
+    padding: 10px 0 8px;
     gap: 10px;
   }
 
@@ -85,31 +83,23 @@
   }
 
   .header-logo-block img {
-    height: 44px;
+    height: 42px;
     width: auto;
-    display: block;
-    filter: drop-shadow(0 0 8px rgba(0,229,255,0.25));
-  }
-
-  .header-title-stack {
-    display: flex;
-    flex-direction: column;
-    line-height: 1.1;
+    filter: drop-shadow(0 0 8px rgba(0,229,255,0.2));
   }
 
   .brand-name {
     font-family: 'Rajdhani', sans-serif;
     font-weight: 700;
-    font-size: 1.25rem;
-    letter-spacing: 3px;
+    font-size: 1.2rem;
+    letter-spacing: 2.5px;
     color: var(--accent);
     text-shadow: var(--glow);
   }
 
   .brand-sub {
     font-family: 'Share Tech Mono', monospace;
-    font-size: 0.6rem;
-    letter-spacing: 2px;
+    font-size: 0.58rem;
     color: var(--text-dim);
     text-transform: uppercase;
   }
@@ -121,18 +111,16 @@
     border: 1px solid var(--border);
     border-radius: 8px;
     overflow: hidden;
-    flex-shrink: 0;
   }
 
   .role-btn {
-    padding: 7px 13px;
+    padding: 7px 12px;
     border: none;
     background: transparent;
     color: var(--text-dim);
     font-family: 'Rajdhani', sans-serif;
     font-weight: 600;
-    font-size: 0.82rem;
-    letter-spacing: 1px;
+    font-size: 0.8rem;
     cursor: pointer;
     transition: all 0.2s;
   }
@@ -142,54 +130,47 @@
     color: #000;
   }
 
-  /* \u2500\u2500\u2500 Tabs \u2500\u2500\u2500 */
+  /* Tabs */
   .tab-bar {
     display: flex;
     overflow-x: auto;
     border-top: 1px solid var(--border);
     scrollbar-width: none;
   }
-  .tab-bar::-webkit-scrollbar { display: none; }
 
   .tab-btn {
     flex: 0 0 auto;
-    padding: 10px 15px;
+    padding: 10px 14px;
     border: none;
     background: transparent;
     color: var(--text-dim);
     font-family: 'Rajdhani', sans-serif;
     font-weight: 600;
     font-size: 0.78rem;
-    letter-spacing: 1.5px;
     text-transform: uppercase;
     cursor: pointer;
     border-bottom: 2px solid transparent;
-    transition: all 0.2s;
-    white-space: nowrap;
   }
 
   .tab-btn.active {
     color: var(--accent);
     border-bottom-color: var(--accent);
-    text-shadow: var(--glow);
   }
 
   .tab-btn.hidden { display: none; }
 
-  /* \u2500\u2500\u2500 Content \u2500\u2500\u2500 */
+  /* Content */
   #app-content {
-    position: relative;
-    z-index: 1;
     padding: 16px;
     max-width: 700px;
     margin: 0 auto;
-    min-height: calc(100vh - 110px);
+    position: relative;
+    z-index: 1;
   }
 
   .tab-panel { display: none; }
   .tab-panel.active { display: block; }
 
-  /* \u2500\u2500\u2500 Cards \u2500\u2500\u2500 */
   .card {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -218,665 +199,111 @@
     background: linear-gradient(90deg, var(--border), transparent);
   }
 
-  /* \u2500\u2500\u2500 Form Elements \u2500\u2500\u2500 */
+  /* Forms */
   .form-group { margin-bottom: 12px; }
-
-  label {
-    display: block;
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: 1px;
-    color: var(--text-dim);
-    margin-bottom: 6px;
-    text-transform: uppercase;
-  }
-
-  input[type="text"],
-  input[type="tel"],
-  input[type="number"],
-  input[type="search"],
-  select,
-  textarea {
+  label { font-size: 0.72rem; color: var(--text-dim); text-transform: uppercase; display: block; margin-bottom: 4px; }
+  input, select, textarea {
     width: 100%;
     background: var(--surface2);
     border: 1px solid var(--border);
     border-radius: 8px;
     color: var(--text);
+    padding: 10px;
     font-family: 'Exo 2', sans-serif;
-    font-size: 0.95rem;
-    padding: 10px 12px;
-    outline: none;
-    transition: border-color 0.2s, box-shadow 0.2s;
-    -webkit-appearance: none;
-    appearance: none;
   }
 
-  input:focus, select:focus, textarea:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 2px rgba(0,229,255,0.15);
-  }
-
-  select {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 12px center;
-    padding-right: 36px;
-  }
-
-  /* Google Places autocomplete dropdown style override */
-  .pac-container {
-    background: var(--surface2) !important;
-    border: 1px solid var(--accent) !important;
-    border-top: none !important;
-    border-radius: 0 0 8px 8px !important;
-    font-family: 'Exo 2', sans-serif !important;
-    z-index: 9999 !important;
-  }
-  .pac-item {
-    padding: 8px 12px !important;
-    color: var(--text) !important;
-    border-top: 1px solid var(--border) !important;
-    cursor: pointer !important;
-    font-size: 0.85rem !important;
-  }
-  .pac-item:hover, .pac-item-selected { background: var(--surface3) !important; }
-  .pac-item-query { color: var(--accent) !important; font-weight: 600 !important; }
-  .pac-icon { display: none !important; }
-
-  /* \u2500\u2500\u2500 Buttons \u2500\u2500\u2500 */
+  /* Buttons */
   .btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    padding: 11px 20px;
-    border: none;
+    width: 100%;
+    padding: 12px;
     border-radius: 8px;
+    border: none;
     font-family: 'Rajdhani', sans-serif;
     font-weight: 700;
-    font-size: 0.9rem;
-    letter-spacing: 1.5px;
     text-transform: uppercase;
     cursor: pointer;
-    transition: all 0.2s;
-    width: 100%;
     margin-top: 8px;
   }
 
-  .btn-primary {
-    background: var(--accent);
-    color: #000;
-    box-shadow: 0 0 16px rgba(0,229,255,0.3);
-  }
-  .btn-primary:hover { background: #33ecff; box-shadow: 0 0 24px rgba(0,229,255,0.5); }
-  .btn-primary:active { transform: scale(0.98); }
+  .btn-primary { background: var(--accent); color: #000; box-shadow: var(--glow); }
+  .btn-green { background: var(--accent3); color: #000; }
+  .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+  .btn-danger { background: var(--danger); color: #fff; }
 
-  .btn-orange {
-    background: var(--accent2);
-    color: #fff;
-    box-shadow: var(--glow2);
-  }
-  .btn-orange:hover { background: #ff8555; }
-
-  .btn-green {
-    background: var(--accent3);
-    color: #000;
-    box-shadow: 0 0 16px rgba(57,255,20,0.3);
-  }
-  .btn-green:hover { background: #55ff30; }
-
-  .btn-danger {
-    background: var(--danger);
-    color: #fff;
-    box-shadow: 0 0 16px rgba(255,61,90,0.3);
-  }
-
-  .btn-outline {
-    background: transparent;
-    border: 1px solid var(--border);
-    color: var(--text);
-  }
-  .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
-
-  .btn-sm {
-    padding: 7px 14px;
-    font-size: 0.78rem;
-    margin-top: 0;
-    width: auto;
-  }
-
-  /* \u2500\u2500\u2500 Dispatch Checkbox List \u2500\u2500\u2500 */
-  .dispatch-search-wrap {
-    position: relative;
-    margin-bottom: 10px;
-  }
-
-  .dispatch-search-wrap input {
-    padding-left: 36px;
-  }
-
-  .dispatch-search-icon {
-    position: absolute;
-    left: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--text-dim);
-    font-size: 0.9rem;
-    pointer-events: none;
-  }
-
+  /* Dispatch Checklist */
   .dispatch-checklist {
     background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    max-height: 260px;
+    border-radius: 10px;
+    max-height: 300px;
     overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: var(--border) transparent;
+    border: 1px solid var(--border);
   }
 
   .dispatch-check-item {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 11px 14px;
+    padding: 12px;
     border-bottom: 1px solid var(--border);
-    cursor: pointer;
-    transition: background 0.15s;
-    user-select: none;
   }
 
-  .dispatch-check-item:last-child { border-bottom: none; }
-  .dispatch-check-item:hover { background: var(--surface3); }
-  .dispatch-check-item.checked { background: rgba(0,229,255,0.07); }
-
-  .dispatch-check-item input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    accent-color: var(--accent);
-    flex-shrink: 0;
-    cursor: pointer;
-    margin: 0;
-    border-radius: 4px;
-  }
-
-  .dispatch-check-label {
-    flex: 1;
-  }
-
-  .dispatch-check-name {
-    font-family: 'Rajdhani', sans-serif;
-    font-weight: 600;
-    font-size: 0.95rem;
-    color: var(--text);
-  }
-
-  .dispatch-check-sub {
-    font-size: 0.72rem;
-    color: var(--text-dim);
-    margin-top: 1px;
-  }
-
-  .dispatch-check-item.no-results {
-    color: var(--text-dim);
-    font-size: 0.85rem;
-    justify-content: center;
-    cursor: default;
-  }
-  .dispatch-check-item.no-results:hover { background: transparent; }
-
-  .dispatch-selected-count {
-    font-size: 0.75rem;
-    color: var(--accent);
-    font-family: 'Share Tech Mono', monospace;
-    margin-bottom: 8px;
-    letter-spacing: 1px;
-  }
-
-  /* \u2500\u2500\u2500 Stop List Items \u2500\u2500\u2500 */
-  .stop-item {
-    background: var(--surface2);
+  /* Payroll Tiers */
+  .payroll-summary {
+    background: linear-gradient(135deg, rgba(0,229,255,0.1), rgba(57,255,20,0.05));
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
     border: 1px solid var(--border);
-    border-left: 3px solid var(--accent);
-    border-radius: 8px;
-    padding: 14px;
-    margin-bottom: 10px;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  .stop-item:hover {
-    border-color: var(--accent);
-    box-shadow: var(--glow);
-    transform: translateX(2px);
   }
 
-  .stop-name {
-    font-family: 'Rajdhani', sans-serif;
-    font-weight: 700;
-    font-size: 1.05rem;
-    color: var(--text);
-    margin-bottom: 4px;
-  }
+  .payroll-check { font-family: 'Share Tech Mono', monospace; font-size: 2.5rem; color: var(--accent3); }
 
-  .stop-meta {
-    font-size: 0.78rem;
-    color: var(--text-dim);
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-  }
+  .tier-row { display: flex; justify-content: space-between; padding: 6px 10px; border-radius: 4px; font-size: 0.8rem; }
+  .active-tier { background: rgba(57,255,20,0.2); color: var(--accent3); font-weight: bold; }
 
-  .badge {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 0.68rem;
-    font-weight: 700;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-  }
-  .badge-cod { background: rgba(255,107,53,0.2); color: var(--accent2); border: 1px solid rgba(255,107,53,0.3); }
-  .badge-cash { background: rgba(57,255,20,0.15); color: var(--accent3); border: 1px solid rgba(57,255,20,0.3); }
-  .badge-ar { background: rgba(0,229,255,0.15); color: var(--accent); border: 1px solid rgba(0,229,255,0.3); }
-
-  /* \u2500\u2500\u2500 Modal \u2500\u2500\u2500 */
+  /* Modal */
   .modal-overlay {
     display: none;
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.82);
-    backdrop-filter: blur(4px);
+    background: rgba(0,0,0,0.85);
     z-index: 200;
-    overflow-y: auto;
-  }
-  .modal-overlay.active { display: block; }
-
-  .modal-box {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    margin: 20px auto;
-    max-width: 500px;
-    width: calc(100% - 32px);
-    overflow: hidden;
-  }
-
-  .modal-header {
-    background: var(--surface2);
-    padding: 16px;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .modal-title {
-    font-family: 'Rajdhani', sans-serif;
-    font-weight: 700;
-    font-size: 1.1rem;
-    color: var(--accent);
-    letter-spacing: 1px;
-  }
-
-  .modal-close {
-    background: none;
-    border: none;
-    color: var(--text-dim);
-    font-size: 1.4rem;
-    cursor: pointer;
-    line-height: 1;
-    padding: 4px;
-  }
-  .modal-close:hover { color: var(--danger); }
-
-  .modal-body { padding: 16px; }
-
-  .detail-row {
-    display: flex;
-    flex-direction: column;
-    margin-bottom: 12px;
-  }
-
-  .detail-label {
-    font-size: 0.7rem;
-    font-weight: 700;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    color: var(--text-dim);
-    margin-bottom: 3px;
-  }
-
-  .detail-value { font-size: 0.95rem; color: var(--text); }
-  .detail-value a { color: var(--accent); text-decoration: none; }
-  .detail-value a:hover { text-decoration: underline; }
-
-  /* \u2500\u2500\u2500 Daily Worksheet (Stop Modal) \u2500\u2500\u2500 */
-  .worksheet-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 8px;
-    margin-bottom: 12px;
-  }
-
-  .worksheet-field label { font-size: 0.68rem; }
-  .worksheet-field input { font-size: 0.88rem; padding: 8px 10px; }
-
-  /* \u2500\u2500\u2500 OCR \u2500\u2500\u2500 */
-  .ocr-zone {
-    border: 2px dashed var(--border);
-    border-radius: 10px;
-    padding: 18px;
-    text-align: center;
-    cursor: pointer;
-    transition: border-color 0.2s;
-    margin-bottom: 12px;
-  }
-  .ocr-zone:hover { border-color: var(--accent); }
-  .ocr-zone input[type="file"] { display: none; }
-  .ocr-icon { font-size: 1.8rem; margin-bottom: 6px; }
-  .ocr-text { font-size: 0.8rem; color: var(--text-dim); }
-
-  .ocr-progress {
-    background: var(--surface2);
-    border-radius: 4px;
-    height: 4px;
-    margin: 10px 0;
-    overflow: hidden;
-    display: none;
-  }
-
-  .ocr-bar {
-    height: 100%;
-    background: var(--accent);
-    width: 0%;
-    transition: width 0.3s;
-  }
-
-  /* \u2500\u2500\u2500 Translator \u2500\u2500\u2500 */
-  .speech-display {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 16px;
-    min-height: 70px;
-    font-size: 1rem;
-    color: var(--text);
-    margin-bottom: 12px;
-    line-height: 1.6;
-  }
-
-  .translation-display {
-    background: linear-gradient(135deg, rgba(0,229,255,0.06), rgba(0,229,255,0.02));
-    border: 1px solid rgba(0,229,255,0.2);
-    border-radius: 10px;
-    padding: 16px;
-    min-height: 70px;
-    font-size: 1.1rem;
-    color: var(--accent);
-    margin-bottom: 12px;
-    line-height: 1.6;
-    font-weight: 500;
-  }
-
-  .lang-label {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 0.7rem;
-    color: var(--text-dim);
-    letter-spacing: 1px;
-    margin-bottom: 6px;
-  }
-
-  .btn-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-top: 10px;
-  }
-
-  .listening-indicator {
-    display: none;
-    align-items: center;
-    gap: 8px;
-    color: var(--danger);
-    font-size: 0.82rem;
-    margin-bottom: 8px;
-    font-weight: 600;
-  }
-  .listening-indicator.active { display: flex; }
-
-  .pulse-dot {
-    width: 8px; height: 8px;
-    background: var(--danger);
-    border-radius: 50%;
-    animation: pulse 1s infinite;
-  }
-  @keyframes pulse {
-    0%, 100% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.4); opacity: 0.5; }
-  }
-
-  /* \u2500\u2500\u2500 Payroll \u2500\u2500\u2500 */
-  .payroll-summary {
-    background: linear-gradient(135deg, rgba(0,229,255,0.08), rgba(255,107,53,0.05));
-    border: 1px solid var(--border);
-    border-radius: 12px;
     padding: 20px;
-    margin-bottom: 16px;
-    text-align: center;
   }
+  .modal-overlay.active { display: flex; align-items: center; justify-content: center; }
+  .modal-box { background: var(--surface); border-radius: 16px; width: 100%; max-width: 500px; padding: 20px; border: 1px solid var(--border); }
 
-  .payroll-period {
-    font-size: 0.72rem;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: var(--text-dim);
-    margin-bottom: 16px;
-  }
+  /* Utilities */
+  .badge { padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: 700; }
+  .badge-cod { background: var(--accent2); color: #fff; }
+  .badge-cash { background: var(--accent3); color: #000; }
+  .badge-ar { background: var(--accent); color: #000; }
 
-  .payroll-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-bottom: 16px;
-  }
-
-  .payroll-stat {
-    background: var(--surface2);
-    border-radius: 8px;
-    padding: 12px;
-    border: 1px solid var(--border);
-  }
-
-  .payroll-stat-label {
-    font-size: 0.68rem;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    color: var(--text-dim);
-    margin-bottom: 4px;
-  }
-
-  .payroll-stat-value {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 1rem;
-    color: var(--text);
-    font-weight: 600;
-  }
-
-  .payroll-check {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 2rem;
-    color: var(--accent3);
-    font-weight: 700;
-    text-shadow: 0 0 20px rgba(57,255,20,0.4);
-    margin-bottom: 4px;
-  }
-
-  .payroll-check-label {
-    font-size: 0.72rem;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: var(--text-dim);
-  }
-
-  .tier-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 12px;
-    border-radius: 6px;
-    font-size: 0.82rem;
-    margin-bottom: 4px;
-  }
-
-  .tier-row.active-tier {
-    background: rgba(57,255,20,0.1);
-    border: 1px solid rgba(57,255,20,0.25);
-    color: var(--accent3);
-    font-weight: 700;
-  }
-
-  .tier-row:not(.active-tier) { color: var(--text-dim); }
-
-  .log-item {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 12px;
-    margin-bottom: 8px;
-  }
-
-  .log-item-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-  }
-
-  .log-name {
-    font-family: 'Rajdhani', sans-serif;
-    font-weight: 600;
-    font-size: 0.95rem;
-  }
-
-  .log-amount {
-    font-family: 'Share Tech Mono', monospace;
-    color: var(--accent3);
-    font-size: 0.95rem;
-  }
-
-  .log-date { font-size: 0.7rem; color: var(--text-dim); margin-top: 2px; }
-
-  .log-breakdown {
-    display: flex;
-    gap: 12px;
-    margin-top: 6px;
-    flex-wrap: wrap;
-  }
-
-  .log-sub {
-    font-size: 0.72rem;
-    color: var(--text-dim);
-    font-family: 'Share Tech Mono', monospace;
-  }
-
-  /* \u2500\u2500\u2500 Roster \u2500\u2500\u2500 */
-  .roster-item {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 12px 14px;
-    margin-bottom: 8px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .roster-name {
-    font-family: 'Rajdhani', sans-serif;
-    font-weight: 700;
-    font-size: 1rem;
-  }
-
-  .roster-detail { font-size: 0.78rem; color: var(--text-dim); margin-top: 2px; }
-
-  .btn-icon-row { display: flex; gap: 6px; }
-
-  /* \u2500\u2500\u2500 Misc \u2500\u2500\u2500 */
-  .empty-state {
-    text-align: center;
-    padding: 36px 20px;
-    color: var(--text-dim);
-  }
-  .empty-icon { font-size: 2.2rem; margin-bottom: 10px; }
-  .empty-text { font-size: 0.88rem; }
-
-  .info-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 4px 10px;
-    font-size: 0.75rem;
-    color: var(--text-dim);
-    margin: 3px;
-  }
-
-  .divider {
-    height: 1px;
-    background: var(--border);
-    margin: 14px 0;
-  }
-
-  .section-header {
-    font-family: 'Rajdhani', sans-serif;
-    font-weight: 700;
-    font-size: 0.75rem;
-    letter-spacing: 2.5px;
-    text-transform: uppercase;
-    color: var(--text-dim);
-    margin: 20px 0 10px;
-  }
-
-  /* \u2500\u2500\u2500 Toast \u2500\u2500\u2500 */
   #toast {
     position: fixed;
-    bottom: 24px;
+    bottom: 20px;
     left: 50%;
-    transform: translateX(-50%) translateY(20px);
-    background: var(--surface);
+    transform: translateX(-50%);
+    background: var(--surface2);
     border: 1px solid var(--accent);
-    color: var(--text);
     padding: 10px 20px;
     border-radius: 8px;
-    font-size: 0.85rem;
-    box-shadow: var(--glow);
     opacity: 0;
-    transition: all 0.3s;
-    z-index: 999;
-    white-space: nowrap;
-    max-width: 90vw;
-    text-align: center;
+    transition: 0.3s;
+    z-index: 1000;
   }
-  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-
-  @media (max-width: 400px) {
-    .btn-row { grid-template-columns: 1fr; }
-    .payroll-grid { grid-template-columns: 1fr; }
-    .worksheet-grid { grid-template-columns: 1fr 1fr; }
-  }
+  #toast.show { opacity: 1; }
 </style>
 </head>
 <body>
 
-<!-- \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 HEADER \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 -->
 <div class="app-header">
   <div class="header-top">
     <div class="header-logo-block">
-      <img src="1771924165353.jpeg" alt="Accurate Edges Logo" style="max-height:44px;" onerror="this.style.display='none'">
-      <div class="header-title-stack">
-        <span class="brand-name">ACCURATE EDGES</span>
-        <span class="brand-sub">Est. 1993 \u00b7 Route Manager</span>
+      <img src="1771924165353.jpeg" alt="Logo">
+      <div>
+        <div class="brand-name">ACCURATE EDGES</div>
+        <div class="brand-sub">Route Manager</div>
       </div>
     </div>
     <div class="role-toggle">
@@ -884,6 +311,251 @@
       <button class="role-btn" id="btnBoss" onclick="setRole('boss')">BOSS</button>
     </div>
   </div>
-  <div class="tab-bar" id="tabBar">
-    <button class="tab-btn hidden" id="tab-dispatch" onclick="showTab('dispatch')">\ud83d\udce1 DISPATCH</button>
-    <button class="tab-btn" id="tab-route
+  <div class="tab-bar">
+    <button class="tab-btn hidden" id="tab-dispatch" onclick="showTab('dispatch')">Dispatch</button>
+    <button class="tab-btn" id="tab-route" onclick="showTab('route')">Route</button>
+    <button class="tab-btn" id="tab-translator" onclick="showTab('translator')">Translate</button>
+    <button class="tab-btn" id="tab-roster" onclick="showTab('roster')">Roster</button>
+    <button class="tab-btn" id="tab-payroll" onclick="showTab('payroll')">Payroll</button>
+  </div>
+</div>
+
+<div id="app-content">
+  <div class="tab-panel" id="panel-dispatch">
+    <div class="card">
+      <div class="card-title">Build Today's Route</div>
+      <input type="text" id="dispatchSearch" placeholder="Search clients..." oninput="renderDispatchList()" style="margin-bottom:10px;">
+      <div class="dispatch-checklist" id="dispatchChecklist"></div>
+      <button class="btn btn-primary" onclick="dispatchRoute()">Dispatch Now</button>
+    </div>
+  </div>
+
+  <div class="tab-panel" id="panel-route">
+    <div class="card">
+      <div class="card-title">Active Stops</div>
+      <div id="liveRouteList"></div>
+    </div>
+  </div>
+
+  <div class="tab-panel" id="panel-payroll">
+    <div class="payroll-summary">
+      <div class="brand-sub">Estimated Paycheck</div>
+      <div class="payroll-check" id="paycheck">$600.00</div>
+      <div id="payrollStats" style="font-size: 0.8rem; color: var(--text-dim); margin-top: 10px;"></div>
+    </div>
+    <div class="card" style="margin-top:16px;">
+      <div class="card-title">Commission Tiers</div>
+      <div id="tierTable"></div>
+    </div>
+  </div>
+
+  <div class="tab-panel" id="panel-roster">
+    <div class="card">
+        <div class="card-title">Add Client</div>
+        <input type="text" id="r_name" placeholder="Business Name">
+        <input type="text" id="r_address" placeholder="Address">
+        <select id="r_terms">
+            <option value="C.O.D.">C.O.D.</option>
+            <option value="Cash">Cash</option>
+            <option value="AR / On Acct">AR / On Account</option>
+        </select>
+        <button class="btn btn-primary" onclick="saveClient()">Save Client</button>
+    </div>
+    <div id="rosterList"></div>
+  </div>
+
+  <div class="tab-panel" id="panel-translator">
+    <div class="card">
+        <div class="card-title">Spanish Translator</div>
+        <textarea id="typeInput" placeholder="Type here..."></textarea>
+        <button class="btn btn-primary" onclick="translateTyped('en','es')">Translate to Spanish</button>
+        <div id="translationDisplay" class="card" style="margin-top:10px; min-height:50px;"></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="logStopModal">
+  <div class="modal-box">
+    <div class="card-title" id="modalClientName">Log Stop</div>
+    <div class="form-group">
+      <label>Invoice Total ($)</label>
+      <input type="number" id="m_invoice" step="0.01">
+    </div>
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+        <div class="form-group"><label>Checks/AR</label><input type="number" id="m_checks" step="0.01"></div>
+        <div class="form-group"><label>Cash</label><input type="number" id="m_cash" step="0.01"></div>
+    </div>
+    <button class="btn btn-green" onclick="completeStop()">Complete & Log</button>
+    <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// 1. CONFIGURATION (REPLACE THESE)
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
+  projectId: "YOUR_PROJECT",
+  appId: "YOUR_APP_ID"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// 2. PAYROLL LOGIC (EXACT CONTRACT TIERS)
+const TIERS = [
+  { min: 0,    max: 6999,  pct: 25.0 },
+  { min: 7000, max: 7499,  pct: 27.5 },
+  { min: 7500, max: 7999,  pct: 30.0 },
+  { min: 8000, max: 8499,  pct: 32.5 },
+  { min: 8500, max: 8999,  pct: 35.5 },
+  { min: 9000, max: 9749,  pct: 38.0 },
+  { min: 9750, max: 99999, pct: 40.0 }
+];
+
+let rosterData = {};
+let liveRoute = {};
+let currentStopKey = null;
+
+// 3. CORE FUNCTIONS
+function setRole(role) {
+  document.getElementById('btnDriver').classList.toggle('active', role === 'driver');
+  document.getElementById('btnBoss').classList.toggle('active', role === 'boss');
+  document.getElementById('tab-dispatch').classList.toggle('hidden', role !== 'boss');
+  showTab(role === 'boss' ? 'dispatch' : 'route');
+}
+
+function showTab(tab) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + tab).classList.add('active');
+  document.getElementById('tab-' + tab).classList.add('active');
+}
+
+// Firebase Listeners
+db.ref('roster').on('value', snap => {
+  rosterData = snap.val() || {};
+  renderRoster();
+  renderDispatchList();
+});
+
+db.ref('live_route').on('value', snap => {
+  liveRoute = snap.val() || {};
+  renderLiveRoute();
+});
+
+db.ref('payroll_logs').on('value', snap => {
+  calculatePayroll(snap.val() || {});
+});
+
+function saveClient() {
+  const name = document.getElementById('r_name').value;
+  if(!name) return;
+  db.ref('roster').push({
+    name: name,
+    address: document.getElementById('r_address').value,
+    terms: document.getElementById('r_terms').value
+  });
+  toast("Client Added");
+}
+
+function dispatchRoute() {
+  const selected = {};
+  document.querySelectorAll('.dispatch-check:checked').forEach(cb => {
+    selected[cb.value] = true;
+  });
+  db.ref('live_route').set(selected);
+  toast("Route Dispatched!");
+}
+
+function openStop(key) {
+  currentStopKey = key;
+  document.getElementById('modalClientName').innerText = rosterData[key].name;
+  document.getElementById('logStopModal').classList.add('active');
+}
+
+function completeStop() {
+  const inv = parseFloat(document.getElementById('m_invoice').value) || 0;
+  db.ref('payroll_logs').push({
+    amount: inv,
+    cash: parseFloat(document.getElementById('m_cash').value) || 0,
+    checks: parseFloat(document.getElementById('m_checks').value) || 0,
+    client: rosterData[currentStopKey].name,
+    timestamp: Date.now()
+  });
+  db.ref('live_route/' + currentStopKey).remove();
+  closeModal();
+}
+
+function calculatePayroll(logs) {
+  let totalSales = 0;
+  Object.values(logs).forEach(l => totalSales += l.amount);
+  
+  let pct = 25;
+  TIERS.forEach(t => { if(totalSales >= t.min) pct = t.pct; });
+  
+  const commission = totalSales * (pct / 100);
+  const totalPay = 600 + commission;
+  
+  document.getElementById('paycheck').innerText = "$" + totalPay.toFixed(2);
+  document.getElementById('payrollStats').innerText = `Sales: $${totalSales.toFixed(2)} | Tier: ${pct}%`;
+  renderTierTable(pct);
+}
+
+// Helpers
+function closeModal() { document.getElementById('logStopModal').classList.remove('active'); }
+function toast(msg) { 
+  const t = document.getElementById('toast');
+  t.innerText = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+function renderRoster() {
+    const el = document.getElementById('rosterList');
+    el.innerHTML = Object.keys(rosterData).map(k => `
+        <div class="card">${rosterData[k].name} <span class="badge badge-ar">${rosterData[k].terms}</span></div>
+    `).join('');
+}
+
+function renderDispatchList() {
+    const el = document.getElementById('dispatchChecklist');
+    el.innerHTML = Object.keys(rosterData).map(k => `
+        <div class="dispatch-check-item">
+            <input type="checkbox" class="dispatch-check" value="${k}">
+            <label>${rosterData[k].name}</label>
+        </div>
+    `).join('');
+}
+
+function renderLiveRoute() {
+    const el = document.getElementById('liveRouteList');
+    el.innerHTML = Object.keys(liveRoute).map(k => {
+        const client = rosterData[k] || {name: "Unknown"};
+        return `<div class="card" onclick="openStop('${k}')">📍 ${client.name}</div>`;
+    }).join('');
+}
+
+function renderTierTable(activePct) {
+    const el = document.getElementById('tierTable');
+    el.innerHTML = TIERS.map(t => `
+        <div class="tier-row ${t.pct === activePct ? 'active-tier' : ''}">
+            <span>$${t.min}+</span> <span>${t.pct}%</span>
+        </div>
+    `).join('');
+}
+
+function translateTyped(from, to) {
+    const text = document.getElementById('typeInput').value;
+    fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|es`)
+    .then(r => r.json()).then(d => {
+        document.getElementById('translationDisplay').innerText = d.responseData.translatedText;
+    });
+}
+
+function initPlacesAutocomplete() {} // Placeholder for script callback
+</script>
+</body>
+</html>
