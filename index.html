@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;800&display=swap" rel="stylesheet">
 
-<script src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&libraries=places&callback=initPlacesAutocomplete" async defer></script>
+<script src="keys.js"></script>
 
 <style>
   :root {
@@ -280,28 +280,29 @@
 
 <script>
 // ════════════════════════════════════════════════
-//  CONFIGURATION — INSERT YOUR KEYS HERE
+//  APP INITIALIZATION USING KEYS.JS
 // ════════════════════════════════════════════════
-const firebaseConfig = {
-  apiKey: "YOUR_FIREBASE_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
-  projectId: "YOUR_PROJECT",
-  storageBucket: "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
-};
+if (typeof APP_KEYS === 'undefined') {
+  alert("Error: keys.js file is missing or not loading properly.");
+} else {
+  firebase.initializeApp(APP_KEYS.firebase);
+  
+  if (APP_KEYS.googleMaps && APP_KEYS.googleMaps !== "YOUR_GOOGLE_MAPS_API_KEY") {
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${APP_KEYS.googleMaps}&libraries=places&callback=initPlacesAutocomplete`;
+    script.async = true;
+    script.defer = true;
+    document.head.appendChild(script);
+  }
+}
 
-const GEMINI_KEY = "YOUR_GEMINI_API_KEY"; // For the Interpreter
-
-firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
 // ════════════════════════════════════════════════
 //  APP STATE & ROLES
 // ════════════════════════════════════════════════
-let currentRole = 'driver'; // 'admin', 'boss', 'driver'
-let activeTarget = 'driver'; // Whose route we are looking at
+let currentRole = 'driver'; 
+let activeTarget = 'driver'; 
 let rosterData = {};
 let liveRouteData = {};
 let dispatchSelected = new Set();
@@ -325,16 +326,13 @@ function setRole(role) {
   document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('btn' + role.charAt(0).toUpperCase() + role.slice(1)).classList.add('active');
 
-  // Tab Visibility Logic
   document.getElementById('tab-dispatch').classList.toggle('hidden', role === 'driver');
   document.getElementById('tab-roster').classList.toggle('hidden', role !== 'admin');
   document.getElementById('tab-payroll').classList.toggle('hidden', role === 'boss');
 
-  // Default redirect
   if(role === 'admin' || role === 'boss') showTab('dispatch');
   else showTab('route');
 
-  // Re-listen to the correct route based on who is logged in
   listenToRoute(activeTarget);
 }
 
@@ -406,7 +404,7 @@ function toggleDispatch(key) {
 
 function dispatchRoute() {
   if (dispatchSelected.size === 0) return toast("Select clients first!");
-  const target = document.getElementById('dispatchTarget').value; // 'driver' or 'boss'
+  const target = document.getElementById('dispatchTarget').value; 
   
   const routeObj = {};
   dispatchSelected.forEach(k => { routeObj[k] = true; });
@@ -420,7 +418,7 @@ function dispatchRoute() {
 }
 
 // ════════════════════════════════════════════════
-//  LIVE ROUTE & NAVIGATION (All Roles)
+//  LIVE ROUTE & NAVIGATION
 // ════════════════════════════════════════════════
 function renderLiveRoute() {
   const container = document.getElementById('liveRouteList');
@@ -433,7 +431,7 @@ function renderLiveRoute() {
 
   container.innerHTML = keys.map(k => {
     const c = rosterData[k] || { name: 'Unknown', address: '', terms: '' };
-    const navUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(c.address || c.name)}`;
+    const navUrl = `http://googleusercontent.com/maps.google.com/?q=${encodeURIComponent(c.address || c.name)}`;
     
     return `
       <div class="stop-item">
@@ -514,7 +512,6 @@ function calculatePayroll(logs) {
   document.getElementById('commissionPct').innerText = `${pct.toFixed(1)}%`;
   document.getElementById('paycheck').innerText = `$${paycheck.toFixed(2)}`;
   
-  // Render Tiers (skip the redundant $0-$6499 one for display)
   const displayTiers = TIERS.slice(1);
   document.getElementById('tierTable').innerHTML = displayTiers.map(t => `
     <div class="tier-row ${t.pct === pct ? 'active-tier' : ''}">
@@ -531,6 +528,9 @@ const synth = window.speechSynthesis;
 window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.getVoices(); };
 
 function startAIAction(sourceLang, targetLang) {
+  // SILENT UNLOCK: Tricks mobile browsers into granting audio permission instantly
+  synth.speak(new SpeechSynthesisUtterance(''));
+
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) return toast("Voice not supported on this browser.");
   
@@ -547,6 +547,9 @@ function startAIAction(sourceLang, targetLang) {
 }
 
 function translateManual() {
+  // SILENT UNLOCK for manual typing
+  synth.speak(new SpeechSynthesisUtterance(''));
+
   const text = document.getElementById('typeInput').value;
   if(text) processGemini(text, 'en-US', 'es-LA');
 }
@@ -556,7 +559,7 @@ async function processGemini(text, from, to) {
   document.getElementById('translationDisplay').innerHTML = "<em>Translating...</em>";
 
   try {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`, {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${APP_KEYS.gemini}`, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
     });
@@ -572,7 +575,10 @@ function speakText(text, langCode) {
   if (synth.speaking) synth.cancel();
   const utter = new SpeechSynthesisUtterance(text);
   const voices = synth.getVoices();
-  const bestVoice = voices.find(v => v.lang.includes(langCode.split('-')[0]) && (v.name.includes('Google') || v.name.includes('Enhanced')));
+  
+  let bestVoice = voices.find(v => v.lang.includes(langCode.split('-')[0]) && (v.name.includes('Google') || v.name.includes('Enhanced')));
+  if (!bestVoice) bestVoice = voices.find(v => v.lang.includes(langCode.split('-')[0]));
+  
   if (bestVoice) utter.voice = bestVoice;
   utter.rate = 0.95;
   synth.speak(utter);
@@ -624,7 +630,6 @@ function toast(msg) {
   setTimeout(() => t.classList.remove('show'), 2000);
 }
 
-// Start app
 setRole('driver');
 </script>
 </body>
