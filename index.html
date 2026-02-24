@@ -1,244 +1,1421 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Accurate Edges Tracker</title>
-    
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
-    
-    <style>
-        :root { --bg: #1e1e2f; --card: #2a2a40; --text: #f8f8f2; --green: #50fa7b; --blue: #8be9fd; --red: #ff5555; }
-        body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; padding-bottom: 80px; }
-        
-        .tabs { display: flex; gap: 10px; margin-bottom: 15px; }
-        .tab-btn { flex: 1; padding: 12px; background: var(--card); color: var(--text); border: 1px solid #444; border-radius: 8px; font-weight: bold; text-align: center; cursor: pointer; }
-        .tab-btn.active { background: var(--blue); color: var(--bg); }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-        
-        .card { background: var(--card); padding: 15px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
-        input, select, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: none; font-size: 1rem; box-sizing: border-box; }
-        input, select { background: #fff; color: #333; }
-        .btn-action { background: var(--blue); color: var(--bg); font-weight: bold; }
-        .btn-success { background: var(--green); color: var(--bg); font-weight: bold; }
-        
-        .info-box { background: rgba(0,0,0,0.2); padding: 10px; border-radius: 6px; border-left: 4px solid var(--blue); margin: 10px 0; font-size: 0.9rem; }
-        #status { color: var(--green); text-align: center; font-weight: bold; display: none; }
-        #preview { width: 100%; max-height: 150px; object-fit: contain; display: none; border-radius: 8px; margin-bottom: 10px; }
-        
-        .list-item { background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; margin-top: 10px; border-left: 4px solid var(--green); display: flex; justify-content: space-between; align-items: center; }
-    </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<title>BladeRoute Pro</title>
+
+<!-- Firebase Compat SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+
+<!-- Tesseract.js -->
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+
+<!-- Google Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;800&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --bg: #0a0c0f;
+    --surface: #111318;
+    --surface2: #181b22;
+    --surface3: #1e222c;
+    --blade: #c0c8d8;
+    --accent: #00e5ff;
+    --accent2: #ff6b35;
+    --accent3: #39ff14;
+    --danger: #ff3d5a;
+    --text: #d8dde8;
+    --text-dim: #6b7280;
+    --border: rgba(192,200,216,0.12);
+    --glow: 0 0 20px rgba(0,229,255,0.25);
+    --glow2: 0 0 20px rgba(255,107,53,0.25);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Exo 2', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background texture */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: 
+      repeating-linear-gradient(0deg, transparent, transparent 60px, rgba(0,229,255,0.015) 60px, rgba(0,229,255,0.015) 61px),
+      repeating-linear-gradient(90deg, transparent, transparent 60px, rgba(0,229,255,0.015) 60px, rgba(0,229,255,0.015) 61px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ─── Header ─── */
+  .app-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(10,12,15,0.95);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 16px;
+  }
+
+  .header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+  }
+
+  .logo {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 1.4rem;
+    letter-spacing: 2px;
+    color: var(--accent);
+    text-shadow: var(--glow);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .logo-icon { font-size: 1.2rem; }
+
+  /* Role Toggle */
+  .role-toggle {
+    display: flex;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .role-btn {
+    padding: 6px 14px;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .role-btn.active {
+    background: var(--accent);
+    color: #000;
+    text-shadow: none;
+  }
+
+  /* ─── Tabs ─── */
+  .tab-bar {
+    display: flex;
+    overflow-x: auto;
+    border-top: 1px solid var(--border);
+    scrollbar-width: none;
+  }
+  .tab-bar::-webkit-scrollbar { display: none; }
+
+  .tab-btn {
+    flex: 0 0 auto;
+    padding: 10px 16px;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 0.8rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+    text-shadow: var(--glow);
+  }
+
+  .tab-btn.hidden { display: none; }
+
+  /* ─── Content ─── */
+  #app-content {
+    position: relative;
+    z-index: 1;
+    padding: 16px;
+    max-width: 700px;
+    margin: 0 auto;
+    min-height: calc(100vh - 100px);
+  }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ─── Cards & Sections ─── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .card-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 0.75rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, var(--border), transparent);
+  }
+
+  /* ─── Form Elements ─── */
+  .form-group { margin-bottom: 12px; }
+
+  label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+  }
+
+  input[type="text"],
+  input[type="tel"],
+  input[type="number"],
+  select,
+  textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'Exo 2', sans-serif;
+    font-size: 0.95rem;
+    padding: 10px 12px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(0,229,255,0.15);
+  }
+
+  select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 36px;
+  }
+
+  select[multiple] {
+    background-image: none;
+    padding-right: 12px;
+    height: 160px;
+  }
+
+  /* ─── Buttons ─── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 11px 20px;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 0.9rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+    margin-top: 8px;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+    box-shadow: 0 0 16px rgba(0,229,255,0.3);
+  }
+  .btn-primary:hover { background: #33ecff; box-shadow: 0 0 24px rgba(0,229,255,0.5); }
+  .btn-primary:active { transform: scale(0.98); }
+
+  .btn-orange {
+    background: var(--accent2);
+    color: #fff;
+    box-shadow: var(--glow2);
+  }
+  .btn-orange:hover { background: #ff8555; }
+
+  .btn-green {
+    background: var(--accent3);
+    color: #000;
+    box-shadow: 0 0 16px rgba(57,255,20,0.3);
+  }
+  .btn-green:hover { background: #55ff30; }
+
+  .btn-danger {
+    background: var(--danger);
+    color: #fff;
+    box-shadow: 0 0 16px rgba(255,61,90,0.3);
+  }
+
+  .btn-outline {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+
+  .btn-sm {
+    padding: 7px 14px;
+    font-size: 0.78rem;
+    margin-top: 0;
+    width: auto;
+  }
+
+  /* ─── Stop List Items ─── */
+  .stop-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 8px;
+    padding: 14px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .stop-item:hover {
+    border-color: var(--accent);
+    box-shadow: var(--glow);
+    transform: translateX(2px);
+  }
+
+  .stop-name {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .stop-meta {
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .badge-cod { background: rgba(255,107,53,0.2); color: var(--accent2); border: 1px solid rgba(255,107,53,0.3); }
+  .badge-cash { background: rgba(57,255,20,0.15); color: var(--accent3); border: 1px solid rgba(57,255,20,0.3); }
+  .badge-ar { background: rgba(0,229,255,0.15); color: var(--accent); border: 1px solid rgba(0,229,255,0.3); }
+
+  /* ─── Detail View / Modal ─── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.8);
+    backdrop-filter: blur(4px);
+    z-index: 200;
+    overflow-y: auto;
+  }
+  .modal-overlay.active { display: block; }
+
+  .modal-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    margin: 20px auto;
+    max-width: 500px;
+    width: calc(100% - 32px);
+    overflow: hidden;
+  }
+
+  .modal-header {
+    background: var(--surface2);
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .modal-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--accent);
+    letter-spacing: 1px;
+  }
+
+  .modal-close {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 1.4rem;
+    cursor: pointer;
+    line-height: 1;
+    padding: 4px;
+  }
+  .modal-close:hover { color: var(--danger); }
+
+  .modal-body { padding: 16px; }
+
+  .detail-row {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 12px;
+  }
+
+  .detail-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 3px;
+  }
+
+  .detail-value {
+    font-size: 0.95rem;
+    color: var(--text);
+  }
+
+  .detail-value a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .detail-value a:hover { text-decoration: underline; }
+
+  /* ─── OCR ─── */
+  .ocr-zone {
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s;
+    margin-bottom: 12px;
+  }
+  .ocr-zone:hover { border-color: var(--accent); }
+
+  .ocr-zone input[type="file"] { display: none; }
+
+  .ocr-icon { font-size: 2rem; margin-bottom: 8px; }
+
+  .ocr-text { font-size: 0.82rem; color: var(--text-dim); }
+
+  .ocr-progress {
+    background: var(--surface2);
+    border-radius: 4px;
+    height: 4px;
+    margin: 10px 0;
+    overflow: hidden;
+    display: none;
+  }
+
+  .ocr-bar {
+    height: 100%;
+    background: var(--accent);
+    width: 0%;
+    transition: width 0.3s;
+  }
+
+  /* ─── Translator ─── */
+  .speech-display {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    min-height: 80px;
+    font-size: 1rem;
+    color: var(--text);
+    margin-bottom: 12px;
+    line-height: 1.6;
+  }
+
+  .translation-display {
+    background: linear-gradient(135deg, rgba(0,229,255,0.06), rgba(0,229,255,0.02));
+    border: 1px solid rgba(0,229,255,0.2);
+    border-radius: 10px;
+    padding: 16px;
+    min-height: 80px;
+    font-size: 1.1rem;
+    color: var(--accent);
+    margin-bottom: 12px;
+    line-height: 1.6;
+    font-weight: 500;
+  }
+
+  .lang-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+  }
+
+  .btn-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  .listening-indicator {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    color: var(--danger);
+    font-size: 0.82rem;
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+  .listening-indicator.active { display: flex; }
+
+  .pulse-dot {
+    width: 8px; height: 8px;
+    background: var(--danger);
+    border-radius: 50%;
+    animation: pulse 1s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.4); opacity: 0.5; }
+  }
+
+  /* ─── Payroll ─── */
+  .payroll-summary {
+    background: linear-gradient(135deg, rgba(0,229,255,0.08), rgba(255,107,53,0.05));
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+    text-align: center;
+  }
+
+  .payroll-period {
+    font-size: 0.72rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 16px;
+  }
+
+  .payroll-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .payroll-stat {
+    background: var(--surface2);
+    border-radius: 8px;
+    padding: 12px;
+    border: 1px solid var(--border);
+  }
+
+  .payroll-stat-label {
+    font-size: 0.68rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+  }
+
+  .payroll-stat-value {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1.1rem;
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  .payroll-check {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 2rem;
+    color: var(--accent3);
+    font-weight: 700;
+    text-shadow: 0 0 20px rgba(57,255,20,0.4);
+    margin-bottom: 4px;
+  }
+
+  .payroll-check-label {
+    font-size: 0.72rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+
+  .tier-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    margin-bottom: 4px;
+  }
+
+  .tier-row.active-tier {
+    background: rgba(57,255,20,0.1);
+    border: 1px solid rgba(57,255,20,0.25);
+    color: var(--accent3);
+    font-weight: 700;
+  }
+
+  .tier-row:not(.active-tier) {
+    color: var(--text-dim);
+  }
+
+  .log-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .log-name {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 0.95rem;
+  }
+
+  .log-amount {
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--accent3);
+    font-size: 0.95rem;
+  }
+
+  .log-date {
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+
+  /* ─── Empty State ─── */
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-dim);
+  }
+
+  .empty-icon { font-size: 2.5rem; margin-bottom: 12px; }
+  .empty-text { font-size: 0.9rem; }
+
+  /* ─── Status Toasts ─── */
+  #toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    color: var(--text);
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    box-shadow: var(--glow);
+    opacity: 0;
+    transition: all 0.3s;
+    z-index: 999;
+    white-space: nowrap;
+    max-width: 90vw;
+    text-align: center;
+  }
+
+  #toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* ─── Misc ─── */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 16px 0;
+  }
+
+  .info-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    margin: 3px;
+  }
+
+  .roster-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .roster-name {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 1rem;
+  }
+
+  .roster-detail { font-size: 0.78rem; color: var(--text-dim); margin-top: 2px; }
+
+  .btn-icon-row {
+    display: flex;
+    gap: 6px;
+  }
+
+  .section-header {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 0.75rem;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin: 20px 0 10px;
+  }
+
+  /* ─── Dispatch multi-select hint ─── */
+  .hint {
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+    font-style: italic;
+  }
+
+  @media (max-width: 400px) {
+    .btn-row { grid-template-columns: 1fr; }
+    .payroll-grid { grid-template-columns: 1fr; }
+  }
+</style>
 </head>
 <body>
 
-    <h1 style="text-align:center; font-size: 1.2rem; color: var(--blue);">ACCURATE EDGES</h1>
+<!-- Header -->
+<div class="app-header">
+  <div class="header-top">
+    <div class="logo">
+      <span class="logo-icon">⚔️</span>
+      BLADE<span style="color:var(--accent2)">ROUTE</span>
+    </div>
+    <div class="role-toggle">
+      <button class="role-btn" id="btnDriver" onclick="setRole('driver')">DRIVER</button>
+      <button class="role-btn" id="btnBoss" onclick="setRole('boss')">BOSS</button>
+    </div>
+  </div>
+  <div class="tab-bar" id="tabBar">
+    <button class="tab-btn hidden" id="tab-dispatch" onclick="showTab('dispatch')">📡 DISPATCH</button>
+    <button class="tab-btn" id="tab-route" onclick="showTab('route')">🗺️ ROUTE</button>
+    <button class="tab-btn" id="tab-translator" onclick="showTab('translator')">🌐 TRANSLATE</button>
+    <button class="tab-btn" id="tab-roster" onclick="showTab('roster')">👥 ROSTER</button>
+    <button class="tab-btn" id="tab-payroll" onclick="showTab('payroll')">💰 PAYROLL</button>
+  </div>
+</div>
 
-    <div class="tabs">
-        <div class="tab-btn active" onclick="switchTab('daily')">Daily Log</div>
-        <div class="tab-btn" onclick="switchTab('payroll')">Payroll Check</div>
+<div id="app-content">
+
+  <!-- ══════════════════════════════ TAB: DISPATCH ══════════════════════════════ -->
+  <div class="tab-panel" id="panel-dispatch">
+    <div class="card">
+      <div class="card-title">📡 DISPATCH ROUTE</div>
+      <div class="form-group">
+        <label>Select Clients for Today's Route</label>
+        <div class="hint">Hold Ctrl / Cmd to select multiple clients</div>
+        <select multiple id="dispatchSelect" style="height:200px;"></select>
+      </div>
+      <button class="btn btn-primary" onclick="dispatchRoute()">⚡ DISPATCH ROUTE</button>
     </div>
 
-    <div id="daily" class="tab-content active">
-        <div class="card">
-            <h3>Step 1: Select Client</h3>
-            <select id="clientDropdown" onchange="loadClientDetails()">
-                <option value="">-- Loading Clients... --</option>
-            </select>
-            
-            <div id="clientInfoBox" class="info-box" style="display:none;">
-                <strong>Address:</strong> <span id="displayAddress"></span><br>
-                <strong>Terms:</strong> <span id="displayTerms"></span><br>
-                <strong>Inventory:</strong> <span id="displayInv"></span>
-            </div>
-        </div>
+    <div class="card">
+      <div class="card-title">📋 CURRENT LIVE ROUTE</div>
+      <div id="liveRoutePreview">
+        <div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">No active route</div></div>
+      </div>
+    </div>
+  </div>
 
-        <div class="card">
-            <h3>Step 2: Scan Invoice</h3>
-            <input type="file" id="photoFile" accept="image/*" capture="environment" class="btn-action">
-            <div id="status">Reading Invoice Total... ⌛</div>
-            <img id="preview" src="">
-            
-            <input type="number" id="amtInput" step="0.01" placeholder="Invoice Total ($)">
-            <button class="btn-success" onclick="saveStop()">Log Stop</button>
-        </div>
+  <!-- ══════════════════════════════ TAB: ROUTE ══════════════════════════════ -->
+  <div class="tab-panel" id="panel-route">
+    <div class="card">
+      <div class="card-title">🔴 LIVE ROUTE</div>
+      <div id="liveRouteList">
+        <div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">Waiting for dispatch…</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════ TAB: TRANSLATOR ══════════════════════════════ -->
+  <div class="tab-panel" id="panel-translator">
+    <div class="card">
+      <div class="card-title">🌐 LIVE INTERPRETER</div>
+
+      <div class="listening-indicator" id="listeningIndicator">
+        <div class="pulse-dot"></div>
+        <span id="listeningLabel">LISTENING…</span>
+      </div>
+
+      <div class="lang-label">🎙 ORIGINAL SPEECH</div>
+      <div class="speech-display" id="speechDisplay">Tap a button below to begin speaking…</div>
+
+      <div class="lang-label" id="translationLabel">🔄 TRANSLATION (SPANISH)</div>
+      <div class="translation-display" id="translationDisplay">La traducción aparecerá aquí…</div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary btn-sm" style="width:100%;margin-top:0;" onclick="startSpeech('en-US', 'es')">🎤 SPEAK ENGLISH</button>
+        <button class="btn btn-orange btn-sm" style="width:100%;margin-top:0;" onclick="startSpeech('es-MX', 'en')">🎤 HABLAR ESPAÑOL</button>
+      </div>
+
+      <button class="btn btn-outline" style="margin-top:10px;" onclick="clearTranslator()">🗑 CLEAR</button>
     </div>
 
-    <div id="payroll" class="tab-content">
-        <div class="card" style="text-align: center;">
-            <p style="margin:0; color:var(--blue); font-weight:bold;">Total Sales This Period</p>
-            <h2 id="totalSales" style="color:white; font-size:2rem; margin:5px 0;">$0.00</h2>
-            <p id="commissionRate" style="margin:0; font-size:0.9rem; color:#888;">Current Rate: 25%</p>
-            
-            <hr style="border-color:#444; margin:15px 0;">
-            
-            <p style="margin:0; color:var(--green); font-weight:bold;">Estimated Paycheck</p>
-            <h1 id="grandTotal" style="color:var(--green); font-size:3rem; margin:10px 0;">$600.00</h1>
-            <p style="margin:0; font-size:0.8rem; color:#888;">Includes $600 Base Pay</p>
-        </div>
-        
-        <div class="card">
-            <h3 style="margin:0;">Recent Stops</h3>
-            <div id="payrollList" style="margin-top:15px;">No stops logged.</div>
-        </div>
+    <div class="card">
+      <div class="card-title">⌨️ TYPE TO TRANSLATE</div>
+      <div class="form-group">
+        <label>Enter text</label>
+        <textarea id="typeInput" rows="3" placeholder="Type English or Spanish text here…"></textarea>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary btn-sm" style="width:100%;margin-top:0;" onclick="translateTyped('en','es')">EN → ES</button>
+        <button class="btn btn-orange btn-sm" style="width:100%;margin-top:0;" onclick="translateTyped('es','en')">ES → EN</button>
+      </div>
     </div>
+  </div>
+
+  <!-- ══════════════════════════════ TAB: ROSTER ══════════════════════════════ -->
+  <div class="tab-panel" id="panel-roster">
+    <div class="card">
+      <div class="card-title" id="rosterFormTitle">➕ ADD CLIENT</div>
+      <input type="hidden" id="editKey" value="">
+      <div class="form-group">
+        <label>Business Name *</label>
+        <input type="text" id="r_name" placeholder="e.g. La Casa Restaurant">
+      </div>
+      <div class="form-group">
+        <label>Full Address</label>
+        <input type="text" id="r_address" placeholder="123 Main St, City, ST 12345">
+      </div>
+      <div class="form-group">
+        <label>Phone Number</label>
+        <input type="tel" id="r_phone" placeholder="(555) 555-5555">
+      </div>
+      <div class="form-group">
+        <label>Chef's Name</label>
+        <input type="text" id="r_chef" placeholder="Chef Rodriguez">
+      </div>
+      <div class="form-group">
+        <label>Terms</label>
+        <select id="r_terms">
+          <option value="C.O.D.">C.O.D.</option>
+          <option value="Cash">Cash</option>
+          <option value="AR / On Acct">AR / On Account</option>
+        </select>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="saveClient()">💾 SAVE CLIENT</button>
+        <button class="btn btn-outline" onclick="clearRosterForm()">✕ CLEAR</button>
+      </div>
+    </div>
+
+    <div class="section-header">CLIENT ROSTER</div>
+    <div id="rosterList">
+      <div class="empty-state"><div class="empty-icon">👥</div><div class="empty-text">No clients yet. Add one above!</div></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════ TAB: PAYROLL ══════════════════════════════ -->
+  <div class="tab-panel" id="panel-payroll">
+    <div class="payroll-summary">
+      <div class="payroll-period">BI-WEEKLY PAY PERIOD</div>
+      <div class="payroll-check" id="paycheck">$0.00</div>
+      <div class="payroll-check-label">ESTIMATED PAYCHECK</div>
+      <div class="divider"></div>
+      <div class="payroll-grid">
+        <div class="payroll-stat">
+          <div class="payroll-stat-label">Base Pay</div>
+          <div class="payroll-stat-value">$600.00</div>
+        </div>
+        <div class="payroll-stat">
+          <div class="payroll-stat-label">Total Sales</div>
+          <div class="payroll-stat-value" id="totalSales">$0.00</div>
+        </div>
+        <div class="payroll-stat">
+          <div class="payroll-stat-label">Commission %</div>
+          <div class="payroll-stat-value" id="commissionPct">25.0%</div>
+        </div>
+        <div class="payroll-stat">
+          <div class="payroll-stat-label">Commission $</div>
+          <div class="payroll-stat-value" id="commissionAmt">$0.00</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📊 COMMISSION TIERS</div>
+      <div id="tierTable"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📋 STOP LOG</div>
+      <div id="payrollLogList">
+        <div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">No completed stops yet</div></div>
+      </div>
+      <button class="btn btn-danger" style="margin-top:12px;" onclick="clearPayroll()">🗑 CLEAR ALL LOGS</button>
+    </div>
+  </div>
+
+</div><!-- end app-content -->
+
+<!-- ══════════════════════════════ MODAL: LOG STOP ══════════════════════════════ -->
+<div class="modal-overlay" id="logStopModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title" id="modalClientName">Log Stop</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="detail-row">
+        <span class="detail-label">Chef</span>
+        <span class="detail-value" id="m_chef">—</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Terms</span>
+        <span class="detail-value" id="m_terms">—</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Address</span>
+        <span class="detail-value"><a id="m_address_link" href="#" target="_blank">—</a></span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">Phone</span>
+        <span class="detail-value"><a id="m_phone_link" href="#" id="m_phone">—</a></span>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="card-title">📷 SCAN INVOICE (OCR)</div>
+      <div class="ocr-zone" onclick="document.getElementById('ocrInput').click()">
+        <div class="ocr-icon">📸</div>
+        <div class="ocr-text">Tap to upload invoice photo<br><span style="font-size:0.7rem;">Will auto-extract largest dollar amount</span></div>
+        <input type="file" id="ocrInput" accept="image/*" capture="environment" onchange="runOCR(event)">
+      </div>
+      <div class="ocr-progress" id="ocrProgress"><div class="ocr-bar" id="ocrBar"></div></div>
+      <div id="ocrStatus" style="font-size:0.75rem;color:var(--text-dim);margin-bottom:8px;"></div>
+
+      <div class="form-group">
+        <label>Invoice Total ($)</label>
+        <input type="number" id="m_invoice" placeholder="0.00" step="0.01" min="0">
+      </div>
+
+      <button class="btn btn-green" onclick="completeStop()">✅ COMPLETE STOP</button>
+      <button class="btn btn-outline" style="margin-top:6px;" onclick="closeModal()">← BACK TO ROUTE</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
 
 <script>
-    // Firebase Configuration
-    const firebaseConfig = {
-        apiKey: "AIzaSyAhAewGyf_XXw2JSLuIW7u710PFZTvEHUA",
-        authDomain: "accurate-edges.firebaseapp.com",
-        databaseURL: "https://accurate-edges-default-rtdb.firebaseio.com",
-        projectId: "accurate-edges",
-        storageBucket: "accurate-edges.firebasestorage.app",
-        messagingSenderId: "218979244497",
-        appId: "1:218979244497:web:6c47f47feb0803e97368f0",
-        measurementId: "G-0CBDN80BK5"
-    };
-    
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+// ════════════════════════════════════════════
+//  FIREBASE CONFIG — REPLACE THESE VALUES
+// ════════════════════════════════════════════
+const firebaseConfig = {
+    apiKey: "AIzaSyAhAewGyf_XXw2JSLuIW7u710PFZTvEHUA",
+    authDomain: "accurate-edges.firebaseapp.com",
+    databaseURL: "https://accurate-edges-default-rtdb.firebaseio.com",
+    projectId: "accurate-edges",
+    storageBucket: "accurate-edges.firebasestorage.app",
+    messagingSenderId: "218979244497",
+    appId: "1:218979244497:web:6c47f47feb0803e97368f0",
+    measurementId: "G-0CBDN80BK5"
+};
 
-    let clients = {};
-    let payPeriodLogs = [];
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
-    // Tab Switching
-    function switchTab(tabId) {
-        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
-        document.getElementById(tabId).classList.add('active');
-        event.currentTarget.classList.add('active');
-    }
+// ════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════
+let currentRole = 'driver';
+let currentStopKey = null;
+let rosterData = {};
+let liveRouteData = {};
+let payrollData = {};
 
-    // Load Roster
-    db.ref('roster').on('value', (snapshot) => {
-        clients = snapshot.val() || {};
-        const dropdown = document.getElementById('clientDropdown');
-        dropdown.innerHTML = '<option value="">-- Choose Account --</option>';
-        
-        Object.keys(clients).sort().forEach(key => {
-            const opt = document.createElement('option');
-            opt.value = key;
-            opt.innerText = clients[key].name;
-            dropdown.appendChild(opt);
-        });
+// ════════════════════════════════════════════
+//  ROLE & TAB
+// ════════════════════════════════════════════
+function setRole(role) {
+  currentRole = role;
+  document.getElementById('btnDriver').classList.toggle('active', role === 'driver');
+  document.getElementById('btnBoss').classList.toggle('active', role === 'boss');
+  document.getElementById('tab-dispatch').classList.toggle('hidden', role !== 'boss');
+  if (role === 'boss') showTab('dispatch');
+  else showTab('route');
+}
+
+function showTab(name) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+// ════════════════════════════════════════════
+//  TOAST
+// ════════════════════════════════════════════
+let toastTimer;
+function toast(msg, color = 'var(--accent)') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.borderColor = color;
+  el.style.boxShadow = `0 0 20px ${color}55`;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ════════════════════════════════════════════
+//  ROSTER — Firebase listeners
+// ════════════════════════════════════════════
+db.ref('roster').on('value', snap => {
+  rosterData = snap.val() || {};
+  renderRosterList();
+  renderDispatchSelect();
+});
+
+function renderRosterList() {
+  const el = document.getElementById('rosterList');
+  const keys = Object.keys(rosterData);
+  if (!keys.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-text">No clients yet. Add one above!</div></div>`;
+    return;
+  }
+  el.innerHTML = keys.map(k => {
+    const c = rosterData[k];
+    const badgeClass = c.terms === 'C.O.D.' ? 'badge-cod' : c.terms === 'Cash' ? 'badge-cash' : 'badge-ar';
+    return `
+      <div class="roster-item">
+        <div>
+          <div class="roster-name">${c.name}</div>
+          <div class="roster-detail">${c.chef ? '👨‍🍳 ' + c.chef + ' &nbsp;|&nbsp; ' : ''}${c.phone || ''}</div>
+          <div style="margin-top:4px;"><span class="badge ${badgeClass}">${c.terms}</span></div>
+        </div>
+        <div class="btn-icon-row">
+          <button class="btn btn-outline btn-sm" onclick="editClient('${k}')">✏️</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteClient('${k}')">🗑</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function renderDispatchSelect() {
+  const sel = document.getElementById('dispatchSelect');
+  const keys = Object.keys(rosterData);
+  sel.innerHTML = keys.length
+    ? keys.map(k => `<option value="${k}">${rosterData[k].name}</option>`).join('')
+    : '<option disabled>No clients in roster</option>';
+}
+
+function saveClient() {
+  const name = document.getElementById('r_name').value.trim();
+  if (!name) { toast('Business name is required', 'var(--danger)'); return; }
+  const key = document.getElementById('editKey').value || name.replace(/[^a-zA-Z0-9]/g, '_');
+  const data = {
+    name,
+    address: document.getElementById('r_address').value.trim(),
+    phone: document.getElementById('r_phone').value.trim(),
+    chef: document.getElementById('r_chef').value.trim(),
+    terms: document.getElementById('r_terms').value
+  };
+  db.ref('roster/' + key).set(data)
+    .then(() => { toast('Client saved ✓'); clearRosterForm(); })
+    .catch(e => toast('Error: ' + e.message, 'var(--danger)'));
+}
+
+function editClient(key) {
+  const c = rosterData[key];
+  document.getElementById('r_name').value = c.name;
+  document.getElementById('r_address').value = c.address || '';
+  document.getElementById('r_phone').value = c.phone || '';
+  document.getElementById('r_chef').value = c.chef || '';
+  document.getElementById('r_terms').value = c.terms;
+  document.getElementById('editKey').value = key;
+  document.getElementById('rosterFormTitle').textContent = '✏️ EDIT CLIENT';
+  showTab('roster');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function deleteClient(key) {
+  if (!confirm('Delete ' + (rosterData[key]?.name || key) + '?')) return;
+  db.ref('roster/' + key).remove()
+    .then(() => toast('Client deleted'))
+    .catch(e => toast('Error: ' + e.message, 'var(--danger)'));
+}
+
+function clearRosterForm() {
+  ['r_name','r_address','r_phone','r_chef','editKey'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('r_terms').value = 'C.O.D.';
+  document.getElementById('rosterFormTitle').textContent = '➕ ADD CLIENT';
+}
+
+// ════════════════════════════════════════════
+//  DISPATCH — Boss Mode
+// ════════════════════════════════════════════
+function dispatchRoute() {
+  const sel = document.getElementById('dispatchSelect');
+  const selected = Array.from(sel.selectedOptions).map(o => o.value);
+  if (!selected.length) { toast('Select at least one client', 'var(--danger)'); return; }
+  const routeObj = {};
+  selected.forEach(key => { routeObj[key] = true; });
+  db.ref('live_route').set(routeObj)
+    .then(() => toast(`📡 Route dispatched — ${selected.length} stop(s)`))
+    .catch(e => toast('Error: ' + e.message, 'var(--danger)'));
+}
+
+// ════════════════════════════════════════════
+//  LIVE ROUTE — Driver Mode
+// ════════════════════════════════════════════
+db.ref('live_route').on('value', snap => {
+  liveRouteData = snap.val() || {};
+  renderLiveRoute();
+  renderLiveRoutePreview();
+});
+
+function renderLiveRoute() {
+  const el = document.getElementById('liveRouteList');
+  const keys = Object.keys(liveRouteData);
+  if (!keys.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">🗺️</div><div class="empty-text">Waiting for Boss to dispatch route…</div></div>`;
+    return;
+  }
+  el.innerHTML = keys.map(k => {
+    const c = rosterData[k] || { name: k, terms: '—' };
+    const badgeClass = c.terms === 'C.O.D.' ? 'badge-cod' : c.terms === 'Cash' ? 'badge-cash' : 'badge-ar';
+    return `
+      <div class="stop-item" onclick="openStop('${k}')">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <div class="stop-name">${c.name}</div>
+          <span class="badge ${badgeClass}">${c.terms}</span>
+        </div>
+        <div class="stop-meta">
+          ${c.chef ? '<span>👨‍🍳 ' + c.chef + '</span>' : ''}
+          ${c.address ? '<span>📍 ' + c.address + '</span>' : ''}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function renderLiveRoutePreview() {
+  const el = document.getElementById('liveRoutePreview');
+  const keys = Object.keys(liveRouteData);
+  if (!keys.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">No active route dispatched</div></div>`;
+    return;
+  }
+  el.innerHTML = keys.map(k => {
+    const c = rosterData[k] || { name: k };
+    return `<div class="info-chip">📍 ${c.name || k}</div>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════════
+//  STOP MODAL
+// ════════════════════════════════════════════
+function openStop(key) {
+  currentStopKey = key;
+  const c = rosterData[key] || { name: key, address: '', phone: '', chef: '', terms: '—' };
+  document.getElementById('modalClientName').textContent = c.name;
+  document.getElementById('m_chef').textContent = c.chef || '—';
+  document.getElementById('m_terms').textContent = c.terms || '—';
+  const addr = c.address || '';
+  const mapsUrl = 'https://maps.google.com/?q=' + encodeURIComponent(addr);
+  document.getElementById('m_address_link').textContent = addr || '—';
+  document.getElementById('m_address_link').href = addr ? mapsUrl : '#';
+  const phone = c.phone || '';
+  document.getElementById('m_phone_link').textContent = phone || '—';
+  document.getElementById('m_phone_link').href = phone ? 'tel:' + phone.replace(/\D/g,'') : '#';
+  document.getElementById('m_invoice').value = '';
+  document.getElementById('ocrStatus').textContent = '';
+  document.getElementById('ocrProgress').style.display = 'none';
+  document.getElementById('logStopModal').classList.add('active');
+}
+
+function closeModal() {
+  document.getElementById('logStopModal').classList.remove('active');
+  currentStopKey = null;
+}
+
+function completeStop() {
+  if (!currentStopKey) return;
+  const invoiceVal = parseFloat(document.getElementById('m_invoice').value) || 0;
+  const c = rosterData[currentStopKey] || { name: currentStopKey };
+  const logEntry = {
+    clientKey: currentStopKey,
+    clientName: c.name,
+    invoice: invoiceVal,
+    timestamp: Date.now(),
+    date: new Date().toLocaleDateString()
+  };
+  db.ref('payroll_logs').push(logEntry)
+    .then(() => db.ref('live_route/' + currentStopKey).remove())
+    .then(() => {
+      toast('✅ Stop completed & logged!', 'var(--accent3)');
+      closeModal();
+    })
+    .catch(e => toast('Error: ' + e.message, 'var(--danger)'));
+}
+
+// ════════════════════════════════════════════
+//  OCR — Tesseract.js
+// ════════════════════════════════════════════
+async function runOCR(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const progressEl = document.getElementById('ocrProgress');
+  const barEl = document.getElementById('ocrBar');
+  const statusEl = document.getElementById('ocrStatus');
+  progressEl.style.display = 'block';
+  barEl.style.width = '0%';
+  statusEl.textContent = 'Scanning invoice…';
+  try {
+    const result = await Tesseract.recognize(file, 'eng', {
+      logger: m => {
+        if (m.status === 'recognizing text') {
+          barEl.style.width = Math.round(m.progress * 100) + '%';
+        }
+      }
     });
-
-    function loadClientDetails() {
-        const key = document.getElementById('clientDropdown').value;
-        const infoBox = document.getElementById('clientInfoBox');
-        
-        if (!key) {
-            infoBox.style.display = 'none';
-            return;
-        }
-
-        const c = clients[key];
-        document.getElementById('displayAddress').innerText = c.address || 'N/A';
-        document.getElementById('displayTerms').innerText = c.terms || 'N/A';
-        document.getElementById('displayInv').innerText = c.inventory || 'N/A';
-        infoBox.style.display = 'block';
+    const text = result.data.text;
+    // Extract all decimal numbers, find the largest
+    const nums = [...text.matchAll(/\$?\d{1,6}(?:,\d{3})*(?:\.\d{2})/g)]
+      .map(m => parseFloat(m[0].replace(/[$,]/g, '')));
+    if (nums.length > 0) {
+      const biggest = Math.max(...nums);
+      document.getElementById('m_invoice').value = biggest.toFixed(2);
+      statusEl.textContent = `✓ Found ${nums.length} amount(s). Largest: $${biggest.toFixed(2)}`;
+      toast('📷 Invoice scanned!', 'var(--accent3)');
+    } else {
+      statusEl.textContent = 'No dollar amounts detected. Enter manually.';
+      toast('No amounts found — enter manually', 'var(--accent2)');
     }
+  } catch (err) {
+    statusEl.textContent = 'OCR failed: ' + err.message;
+    toast('OCR error', 'var(--danger)');
+  }
+  barEl.style.width = '100%';
+  event.target.value = '';
+}
 
-    // OCR Scanner
-    document.getElementById('photoFile').onchange = async function(e) {
-        const file = e.target.files[0];
-        if (!file) return;
+// ════════════════════════════════════════════
+//  TRANSLATOR — Web Speech API + MyMemory API
+// ════════════════════════════════════════════
+let recognition = null;
 
-        const status = document.getElementById('status');
-        const preview = document.getElementById('preview');
-        preview.src = URL.createObjectURL(file);
-        preview.style.display = "block";
-        status.style.display = "block";
+function startSpeech(langCode, targetLang) {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    toast('Speech recognition not supported in this browser', 'var(--danger)');
+    return;
+  }
+  if (recognition) { recognition.stop(); }
+  recognition = new SpeechRecognition();
+  recognition.lang = langCode;
+  recognition.continuous = false;
+  recognition.interimResults = false;
+  recognition.onstart = () => {
+    document.getElementById('listeningIndicator').classList.add('active');
+    document.getElementById('listeningLabel').textContent = langCode.startsWith('es') ? 'ESCUCHANDO…' : 'LISTENING…';
+    document.getElementById('speechDisplay').textContent = '…';
+  };
+  recognition.onresult = e => {
+    const transcript = e.results[0][0].transcript;
+    document.getElementById('speechDisplay').textContent = transcript;
+    translateText(transcript, targetLang);
+  };
+  recognition.onerror = e => {
+    toast('Mic error: ' + e.error, 'var(--danger)');
+    document.getElementById('listeningIndicator').classList.remove('active');
+  };
+  recognition.onend = () => {
+    document.getElementById('listeningIndicator').classList.remove('active');
+  };
+  recognition.start();
+}
 
-        try {
-            const worker = await Tesseract.createWorker('eng');
-            const { data: { text } } = await worker.recognize(file);
-            await worker.terminate();
-
-            const prices = text.match(/\d+\.\d{2}/g);
-            if (prices) {
-                const largest = Math.max(...prices.map(Number));
-                document.getElementById('amtInput').value = largest.toFixed(2);
-            }
-        } catch (err) {
-            alert("Scan failed. Enter total manually.");
-        }
-        status.style.display = "none";
-    };
-
-    // Logging & Commission Logic
-    function saveStop() {
-        const clientKey = document.getElementById('clientDropdown').value;
-        const amt = parseFloat(document.getElementById('amtInput').value);
-
-        if (!clientKey || isNaN(amt)) return alert("Select a client and enter total.");
-
-        const newStop = {
-            id: Date.now(),
-            client: clients[clientKey].name,
-            total: amt,
-            date: new Date().toLocaleDateString()
-        };
-
-        db.ref('payroll_logs').push(newStop);
-        
-        document.getElementById('clientDropdown').value = '';
-        document.getElementById('amtInput').value = '';
-        document.getElementById('preview').style.display = 'none';
-        document.getElementById('clientInfoBox').style.display = 'none';
-        
-        alert("Stop Logged!");
-        switchTab('payroll');
-    }
-
-    // Calculate Sliding Scale
-    function calculateCommission(totalSales) {
-        if (totalSales < 7000) return { rate: 0.25, amount: totalSales * 0.25 };
-        if (totalSales < 7500) return { rate: 0.275, amount: totalSales * 0.275 };
-        if (totalSales < 8000) return { rate: 0.30, amount: totalSales * 0.30 };
-        if (totalSales < 8500) return { rate: 0.325, amount: totalSales * 0.325 };
-        if (totalSales < 9000) return { rate: 0.355, amount: totalSales * 0.355 };
-        if (totalSales < 9750) return { rate: 0.38, amount: totalSales * 0.38 };
-        return { rate: 0.40, amount: totalSales * 0.40 };
-    }
-
-    // Load Payroll
-    db.ref('payroll_logs').on('value', (snapshot) => {
-        const list = document.getElementById('payrollList');
-        let totalSales = 0;
-        payPeriodLogs = [];
-        list.innerHTML = '';
-
-        const data = snapshot.val();
-        if (!data) return;
-
-        for (let key in data) {
-            payPeriodLogs.push({...data[key], dbKey: key});
-            totalSales += data[key].total;
-        }
-
-        payPeriodLogs.sort((a,b) => b.id - a.id).forEach(log => {
-            list.innerHTML += `
-                <div class="list-item">
-                    <div>
-                        <strong>${log.client}</strong><br>
-                        <small>${log.date}</small>
-                    </div>
-                    <div style="font-weight:bold;">$${log.total.toFixed(2)}</div>
-                </div>
-            `;
-        });
-
-        const comm = calculateCommission(totalSales);
-        const finalPaycheck = 600 + comm.amount;
-
-        document.getElementById('totalSales').innerText = `$${totalSales.toFixed(2)}`;
-        document.getElementById('commissionRate').innerText = `Current Rate: ${(comm.rate * 100).toFixed(1)}%`;
-        document.getElementById('grandTotal').innerText = `$${finalPaycheck.toFixed(2)}`;
+function translateText(text, targetLang) {
+  document.getElementById('translationLabel').textContent = targetLang === 'es' ? '🔄 TRANSLATION (SPANISH)' : '🔄 TRANSLATION (ENGLISH)';
+  document.getElementById('translationDisplay').textContent = 'Translating…';
+  const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${targetLang === 'es' ? 'en|es' : 'es|en'}`;
+  fetch(url)
+    .then(r => r.json())
+    .then(data => {
+      const t = data.responseData?.translatedText || 'Translation unavailable';
+      document.getElementById('translationDisplay').textContent = t;
+      speakText(t, targetLang === 'es' ? 'es-MX' : 'en-US');
+    })
+    .catch(() => {
+      document.getElementById('translationDisplay').textContent = '⚠ Translation API unavailable. Check connection.';
     });
+}
+
+function translateTyped(fromLang, toLang) {
+  const text = document.getElementById('typeInput').value.trim();
+  if (!text) { toast('Enter some text first', 'var(--danger)'); return; }
+  document.getElementById('speechDisplay').textContent = text;
+  document.getElementById('translationLabel').textContent = toLang === 'es' ? '🔄 TRANSLATION (SPANISH)' : '🔄 TRANSLATION (ENGLISH)';
+  translateText(text, toLang);
+}
+
+function speakText(text, lang) {
+  if (!window.speechSynthesis) return;
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.lang = lang;
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utt);
+}
+
+function clearTranslator() {
+  document.getElementById('speechDisplay').textContent = 'Tap a button below to begin speaking…';
+  document.getElementById('translationDisplay').textContent = 'La traducción aparecerá aquí…';
+  document.getElementById('typeInput').value = '';
+  if (recognition) recognition.stop();
+  window.speechSynthesis && window.speechSynthesis.cancel();
+}
+
+// ════════════════════════════════════════════
+//  PAYROLL
+// ════════════════════════════════════════════
+const TIERS = [
+  { min: 0,    max: 6999.99,  pct: 25.0, label: '$0 – $6,999' },
+  { min: 7000,  max: 7499.99, pct: 27.5, label: '$7,000 – $7,499' },
+  { min: 7500,  max: 7999.99, pct: 30.0, label: '$7,500 – $7,999' },
+  { min: 8000,  max: 8499.99, pct: 32.5, label: '$8,000 – $8,499' },
+  { min: 8500,  max: 8999.99, pct: 35.5, label: '$8,500 – $8,999' },
+  { min: 9000,  max: 9749.99, pct: 38.0, label: '$9,000 – $9,749' },
+  { min: 9750,  max: Infinity, pct: 40.0, label: '$9,750+' },
+];
+
+function getCommissionPct(sales) {
+  for (let t of TIERS) { if (sales >= t.min && sales <= t.max) return t.pct; }
+  return 25.0;
+}
+
+function renderTierTable(activePct) {
+  document.getElementById('tierTable').innerHTML = TIERS.map(t => `
+    <div class="tier-row ${t.pct === activePct ? 'active-tier' : ''}">
+      <span>${t.label}</span>
+      <span>${t.pct.toFixed(1)}% ${t.pct === activePct ? '← YOU ARE HERE' : ''}</span>
+    </div>`).join('');
+}
+
+db.ref('payroll_logs').on('value', snap => {
+  payrollData = snap.val() || {};
+  renderPayroll();
+});
+
+function renderPayroll() {
+  const logs = Object.values(payrollData);
+  const totalSales = logs.reduce((sum, l) => sum + (parseFloat(l.invoice) || 0), 0);
+  const pct = getCommissionPct(totalSales);
+  const commission = totalSales * (pct / 100);
+  const paycheck = 600 + commission;
+
+  document.getElementById('totalSales').textContent = '$' + totalSales.toFixed(2);
+  document.getElementById('commissionPct').textContent = pct.toFixed(1) + '%';
+  document.getElementById('commissionAmt').textContent = '$' + commission.toFixed(2);
+  document.getElementById('paycheck').textContent = '$' + paycheck.toFixed(2);
+  renderTierTable(pct);
+
+  const listEl = document.getElementById('payrollLogList');
+  if (!logs.length) {
+    listEl.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">No completed stops yet</div></div>`;
+    return;
+  }
+  // Sort by timestamp desc
+  const sorted = Object.entries(payrollData).sort((a,b) => (b[1].timestamp||0) - (a[1].timestamp||0));
+  listEl.innerHTML = sorted.map(([k, l]) => `
+    <div class="log-item">
+      <div>
+        <div class="log-name">${l.clientName || l.clientKey}</div>
+        <div class="log-date">${l.date || ''}</div>
+      </div>
+      <div style="text-align:right;">
+        <div class="log-amount">$${(parseFloat(l.invoice)||0).toFixed(2)}</div>
+        <button class="btn btn-outline btn-sm" style="margin-top:4px;" onclick="deleteLog('${k}')">🗑</button>
+      </div>
+    </div>`).join('');
+}
+
+function deleteLog(key) {
+  db.ref('payroll_logs/' + key).remove().then(() => toast('Log entry removed'));
+}
+
+function clearPayroll() {
+  if (!confirm('Clear ALL payroll logs? This cannot be undone.')) return;
+  db.ref('payroll_logs').remove().then(() => toast('Payroll logs cleared'));
+}
+
+// ════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════
+setRole('driver');
+showTab('route');
+renderTierTable(25.0);
 </script>
 </body>
 </html>
