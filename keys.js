@@ -11,7 +11,7 @@ const APP_KEYS = {
   },
   
   // 2. Your Gemini AI Key (for the translator)
-  gemini: "AIzaSyD4tcmQ4HQqDzaIROWKIrfcRo7dy1xUV2M",
+  gemini: "AIzaSyBrdXtZa_zn2gtkQhR0sZMbVfFZLU8Dmsk",
 
   // 3. Your Google Maps Key (for the address auto-fill)
   googleMaps: "AIzaSyBZ33GrowzU4ZyLTodjB7w55XAnqGQm7rM"
