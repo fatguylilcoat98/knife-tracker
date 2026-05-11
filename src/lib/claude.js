@@ -14,6 +14,17 @@ export async function extractInvoiceFromImage(file) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ image_base64: base64, media_type: mediaType })
     })
+    // On a static-only host the SPA rewrite turns missing /api/* paths into the
+    // index.html shell with status 200. Sniff the content-type so we surface a
+    // clean "endpoint not available" message instead of a JSON parse error.
+    const contentType = res.headers.get('content-type') || ''
+    if (!contentType.includes('application/json')) {
+      return {
+        ok: false,
+        error: 'Invoice OCR endpoint is not deployed on this host.',
+        data: null
+      }
+    }
     if (!res.ok) {
       const text = await res.text()
       throw new Error(text || `Extraction failed (${res.status})`)

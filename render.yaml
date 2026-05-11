@@ -1,0 +1,31 @@
+# Render Blueprint — Accurate Edges Node web service
+#
+# Builds the Vite bundle, then runs server.js (Express). server.js serves the
+# SPA from ./dist AND hosts /api/extract-invoice, which proxies invoice photos
+# to Claude Vision so the API key stays off the client.
+#
+# Required env vars (set them in the Render dashboard, marked sync: false):
+#   - VITE_SUPABASE_URL          (baked into the SPA at build time)
+#   - VITE_SUPABASE_ANON_KEY     (baked into the SPA at build time)
+#   - ANTHROPIC_API_KEY          (used at runtime by /api/extract-invoice)
+
+services:
+  - type: web
+    name: accurate-edges
+    runtime: node
+    plan: starter
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /healthz
+    pullRequestPreviewsEnabled: false
+    envVars:
+      - key: NODE_VERSION
+        value: "22.22.2"
+      - key: NODE_ENV
+        value: production
+      - key: VITE_SUPABASE_URL
+        sync: false
+      - key: VITE_SUPABASE_ANON_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
