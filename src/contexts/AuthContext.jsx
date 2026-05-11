@@ -3,50 +3,96 @@ import { supabase, hasSupabaseConfig } from '../lib/supabase.js'
 
 const AuthContext = createContext(null)
 
+// Hard upper bound so the SPA never gets stuck on the loading splash if a
+// Supabase call hangs (e.g. a stale or invalid JWT, network partition, or a
+// CORS/credentials hiccup). After this fires we just drop the user back to the
+// login screen — they can sign in again, which is a clean recovery path.
+const AUTH_TIMEOUT_MS = 8000
+
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [authError, setAuthError] = useState(null)
 
   const loadProfile = useCallback(async (userId) => {
     if (!userId) { setProfile(null); return }
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('id, full_name, role, theme_preference')
-      .eq('id', userId)
-      .single()
-    if (error) {
-      console.error('Failed to load profile', error)
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, role, theme_preference')
+        .eq('id', userId)
+        .maybeSingle()
+      if (error) {
+        console.error('[auth] profile fetch error', error)
+        setProfile(null)
+        return
+      }
+      setProfile(data ?? null)
+    } catch (err) {
+      console.error('[auth] profile fetch threw', err)
       setProfile(null)
-      return
     }
-    setProfile(data)
   }, [])
 
   useEffect(() => {
     if (!hasSupabaseConfig) { setLoading(false); return }
     let mounted = true
-    supabase.auth.getSession().then(async ({ data }) => {
-      if (!mounted) return
-      setSession(data.session)
-      if (data.session?.user?.id) await loadProfile(data.session.user.id)
-      setLoading(false)
-    })
+    let settled = false
+    const finish = () => {
+      if (settled) return
+      settled = true
+      if (mounted) setLoading(false)
+    }
+    const timer = setTimeout(() => {
+      if (!settled) {
+        console.warn('[auth] startup timed out, clearing session and showing login')
+        supabase.auth.signOut().catch(() => {})
+        setAuthError('Sign-in timed out. Please log in again.')
+      }
+      finish()
+    }, AUTH_TIMEOUT_MS)
+
+    ;(async () => {
+      try {
+        const { data, error } = await supabase.auth.getSession()
+        if (error) console.error('[auth] getSession error', error)
+        if (!mounted) return
+        setSession(data?.session ?? null)
+        if (data?.session?.user?.id) await loadProfile(data.session.user.id)
+      } catch (err) {
+        console.error('[auth] startup threw', err)
+        setAuthError(err?.message || 'Sign-in failed')
+      } finally {
+        clearTimeout(timer)
+        finish()
+      }
+    })()
+
     const { data: sub } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
       setSession(newSession)
-      if (newSession?.user?.id) await loadProfile(newSession.user.id)
-      else setProfile(null)
+      if (newSession?.user?.id) {
+        await loadProfile(newSession.user.id)
+      } else {
+        setProfile(null)
+      }
     })
-    return () => { mounted = false; sub.subscription.unsubscribe() }
+    return () => {
+      mounted = false
+      clearTimeout(timer)
+      sub.subscription.unsubscribe()
+    }
   }, [loadProfile])
 
   const signIn = async (email, password) => {
+    setAuthError(null)
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) throw error
     return data
   }
 
   const signUp = async (email, password, fullName) => {
+    setAuthError(null)
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -59,6 +105,7 @@ export function AuthProvider({ children }) {
   const signOut = async () => {
     await supabase.auth.signOut()
     setProfile(null)
+    setAuthError(null)
   }
 
   const refreshProfile = async () => {
@@ -72,6 +119,7 @@ export function AuthProvider({ children }) {
       profile,
       role: profile?.role ?? null,
       loading,
+      authError,
       signIn,
       signUp,
       signOut,
