@@ -1,0 +1,168 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body, #root { height: 100%; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Classic */
+  .theme-classic {
+    background-color: #f5f6f8;
+    color: #1f2937;
+  }
+  /* Modern */
+  .theme-modern {
+    background-color: #0a0c0f;
+    color: #e5e7eb;
+    background-image:
+      repeating-linear-gradient(0deg, transparent 0 60px, rgba(0,229,255,0.04) 60px 61px),
+      repeating-linear-gradient(90deg, transparent 0 60px, rgba(0,229,255,0.04) 60px 61px);
+  }
+}
+
+@layer components {
+  /* ----- Classic ----- */
+  .ae-classic-card {
+    @apply bg-white border border-classic-border rounded-lg shadow-sm;
+  }
+  .ae-classic-btn {
+    @apply inline-flex items-center justify-center px-5 py-3 rounded-md font-semibold text-white;
+    background: #1e3a8a;
+    transition: background-color 120ms ease;
+  }
+  .ae-classic-btn:hover { background: #1e40af; }
+  .ae-classic-btn:disabled { background: #94a3b8; cursor: not-allowed; }
+  .ae-classic-btn-secondary {
+    @apply inline-flex items-center justify-center px-5 py-3 rounded-md font-semibold;
+    background: #ffffff;
+    color: #1e3a8a;
+    border: 1px solid #cbd5e1;
+  }
+  .ae-classic-btn-secondary:hover { background: #f1f5f9; }
+  .ae-classic-btn-danger {
+    @apply inline-flex items-center justify-center px-5 py-3 rounded-md font-semibold text-white;
+    background: #b91c1c;
+  }
+  .ae-classic-input {
+    @apply w-full rounded-md border border-classic-border bg-white px-3 py-3 text-classic-text outline-none;
+  }
+  .ae-classic-input:focus { border-color: #1e3a8a; box-shadow: 0 0 0 3px rgba(30,58,138,0.15); }
+  .ae-classic-label {
+    @apply block text-sm font-semibold text-classic-text mb-1;
+  }
+  .ae-classic-chip {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+    background: #e0e7ff; color: #1e3a8a;
+  }
+
+  /* ----- Modern ----- */
+  .ae-modern-card {
+    @apply rounded-lg;
+    background: linear-gradient(180deg, #13161c 0%, #0f1217 100%);
+    border: 1px solid #2a2f3a;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.02) inset;
+  }
+  .ae-modern-btn {
+    @apply inline-flex items-center justify-center px-5 py-3 rounded-md font-semibold;
+    background: linear-gradient(180deg, #1c2029 0%, #13161c 100%);
+    color: #00e5ff;
+    border: 1px solid #2a2f3a;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-family: 'Rajdhani', sans-serif;
+    transition: all 150ms ease;
+  }
+  .ae-modern-btn:hover {
+    border-color: #00e5ff;
+    box-shadow: 0 0 16px rgba(0,229,255,0.25);
+  }
+  .ae-modern-btn:disabled { color: #4b5563; border-color: #1f2330; box-shadow: none; cursor: not-allowed; }
+  .ae-modern-btn-primary {
+    background: linear-gradient(180deg, #0891b2 0%, #075985 100%);
+    color: #f8fafc;
+    border: 1px solid #00e5ff;
+    box-shadow: 0 0 16px rgba(0,229,255,0.3);
+  }
+  .ae-modern-btn-primary:hover {
+    box-shadow: 0 0 24px rgba(0,229,255,0.55);
+  }
+  .ae-modern-btn-danger {
+    background: linear-gradient(180deg, #7f1d1d 0%, #450a0a 100%);
+    color: #fecaca;
+    border: 1px solid #ff3d5a;
+  }
+  .ae-modern-input {
+    @apply w-full rounded-md px-3 py-3 outline-none;
+    background: #0a0c0f;
+    color: #e5e7eb;
+    border: 1px solid #2a2f3a;
+    font-family: 'Share Tech Mono', monospace;
+  }
+  .ae-modern-input:focus { border-color: #00e5ff; box-shadow: 0 0 0 3px rgba(0,229,255,0.18); }
+  .ae-modern-label {
+    @apply block text-xs font-bold mb-1;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-family: 'Rajdhani', sans-serif;
+  }
+  .ae-modern-chip {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-mono;
+    background: rgba(0,229,255,0.08); color: #00e5ff; border: 1px solid rgba(0,229,255,0.3);
+  }
+
+  /* shared layout primitives — react to theme via parent class */
+  .ae-card { @apply ae-classic-card; }
+  .theme-modern .ae-card { @apply ae-modern-card; }
+  .ae-btn { @apply ae-classic-btn; }
+  .theme-modern .ae-btn { @apply ae-modern-btn-primary; }
+  .ae-btn-secondary { @apply ae-classic-btn-secondary; }
+  .theme-modern .ae-btn-secondary { @apply ae-modern-btn; }
+  .ae-btn-danger { @apply ae-classic-btn-danger; }
+  .theme-modern .ae-btn-danger { @apply ae-modern-btn-danger; }
+  .ae-input { @apply ae-classic-input; }
+  .theme-modern .ae-input { @apply ae-modern-input; }
+  .ae-label { @apply ae-classic-label; }
+  .theme-modern .ae-label { @apply ae-modern-label; }
+  .ae-chip { @apply ae-classic-chip; }
+  .theme-modern .ae-chip { @apply ae-modern-chip; }
+
+  .ae-h1 {
+    @apply text-2xl font-bold tracking-tight;
+  }
+  .theme-modern .ae-h1 {
+    font-family: 'Rajdhani', sans-serif;
+    @apply uppercase tracking-widest text-modern-accent;
+    text-shadow: 0 0 14px rgba(0,229,255,0.25);
+  }
+  .ae-h2 {
+    @apply text-lg font-semibold;
+  }
+  .theme-modern .ae-h2 {
+    font-family: 'Rajdhani', sans-serif;
+    @apply uppercase tracking-wider text-modern-silver;
+  }
+  .ae-muted {
+    @apply text-classic-muted;
+  }
+  .theme-modern .ae-muted {
+    @apply text-modern-muted;
+  }
+}
+
+/* Print styles */
+@media print {
+  .no-print { display: none !important; }
+  body { background: white !important; color: black !important; }
+  .ae-card, .ae-modern-card, .ae-classic-card {
+    border: 1px solid #cbd5e1 !important;
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+  }
+}
