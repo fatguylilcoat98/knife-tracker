@@ -1,50 +1,31 @@
-# Render Blueprint — Accurate Edges static SPA
+# Render Blueprint — Accurate Edges Node web service
 #
-# This serves the built Vite app from ./dist. Render builds the bundle on each
-# deploy using npm ci && npm run build, then publishes the static output.
+# Builds the Vite bundle, then runs server.js (Express). server.js serves the
+# SPA from ./dist AND hosts /api/extract-invoice, which proxies invoice photos
+# to Claude Vision so the API key stays off the client.
 #
-# Required env vars (set them once in the Render dashboard, marked sync: false):
-#   - VITE_SUPABASE_URL
-#   - VITE_SUPABASE_ANON_KEY
-#
-# Note: this is a static site, so the /api/extract-invoice serverless function
-# is NOT served from here. Manual account entry works fine; photo OCR will
-# return a "could not extract" message and fall back to manual entry. To enable
-# OCR later, host /api/extract-invoice on a separate Render Web Service,
-# Vercel, or Cloudflare Workers and point the client fetch at it.
+# Required env vars (set them in the Render dashboard, marked sync: false):
+#   - VITE_SUPABASE_URL          (baked into the SPA at build time)
+#   - VITE_SUPABASE_ANON_KEY     (baked into the SPA at build time)
+#   - ANTHROPIC_API_KEY          (used at runtime by /api/extract-invoice)
 
 services:
   - type: web
-    name: knife-tracker
-    runtime: static
+    name: accurate-edges
+    runtime: node
+    plan: starter
     buildCommand: npm ci && npm run build
-    staticPublishPath: ./dist
+    startCommand: npm start
+    healthCheckPath: /healthz
     pullRequestPreviewsEnabled: false
     envVars:
       - key: NODE_VERSION
         value: "22.22.2"
+      - key: NODE_ENV
+        value: production
       - key: VITE_SUPABASE_URL
         sync: false
       - key: VITE_SUPABASE_ANON_KEY
         sync: false
-    # SPA client-side routes: every unmatched path falls back to index.html
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
-    headers:
-      - path: /assets/*
-        name: Cache-Control
-        value: "public, max-age=31536000, immutable"
-      - path: /
-        name: Cache-Control
-        value: "no-cache"
-      - path: /index.html
-        name: Cache-Control
-        value: "no-cache"
-      - path: /manifest.webmanifest
-        name: Cache-Control
-        value: "no-cache"
-      - path: /sw.js
-        name: Cache-Control
-        value: "no-cache"
+      - key: ANTHROPIC_API_KEY
+        sync: false
