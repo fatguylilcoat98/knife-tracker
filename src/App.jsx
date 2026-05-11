@@ -1,5 +1,7 @@
+import { useState, useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './contexts/AuthContext.jsx'
+import { supabase } from './lib/supabase.js'
 import Login from './components/Login.jsx'
 import Header from './components/Header.jsx'
 import BossAccounts from './components/BossAccounts.jsx'
@@ -23,15 +25,49 @@ const EMPLOYEE_LINKS = [
   { to: '/settings', label: 'Settings' }
 ]
 
+function LoadingSplash() {
+  // If the splash sits for more than a few seconds something upstream is wedged
+  // (stale JWT, network glitch). Offer a one-tap reset so users aren't trapped.
+  const [showReset, setShowReset] = useState(false)
+  useEffect(() => {
+    const t = setTimeout(() => setShowReset(true), 4000)
+    return () => clearTimeout(t)
+  }, [])
+
+  const reset = async () => {
+    try { await supabase.auth.signOut() } catch {}
+    try {
+      localStorage.clear()
+      sessionStorage.clear()
+    } catch {}
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations()
+      await Promise.all(regs.map((r) => r.unregister()))
+    }
+    if (typeof caches !== 'undefined') {
+      const keys = await caches.keys()
+      await Promise.all(keys.map((k) => caches.delete(k)))
+    }
+    window.location.replace('/')
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-6">
+      <div className="ae-muted text-sm">Loading…</div>
+      {showReset && (
+        <button type="button" className="ae-btn-secondary text-sm" onClick={reset}>
+          Reset session
+        </button>
+      )}
+    </div>
+  )
+}
+
 export default function App() {
   const { loading, user, role } = useAuth()
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="ae-muted text-sm">Loading…</div>
-      </div>
-    )
+    return <LoadingSplash />
   }
 
   if (!user) return <Login />

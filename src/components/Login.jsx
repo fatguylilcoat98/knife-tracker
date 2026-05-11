@@ -4,7 +4,7 @@ import { useTheme } from '../contexts/ThemeContext.jsx'
 import { hasSupabaseConfig } from '../lib/supabase.js'
 
 export default function Login() {
-  const { signIn, signUp } = useAuth()
+  const { signIn, signUp, authError } = useAuth()
   const { theme, toggleTheme } = useTheme()
   const [mode, setMode] = useState('signin')
   const [email, setEmail] = useState('')
@@ -99,6 +99,7 @@ export default function Login() {
           </div>
 
           {error && <div className="text-sm text-red-600">{error}</div>}
+          {!error && authError && <div className="text-sm text-amber-600">{authError}</div>}
           {info && <div className="text-sm text-emerald-700">{info}</div>}
 
           <button type="submit" className="ae-btn w-full" disabled={busy}>
