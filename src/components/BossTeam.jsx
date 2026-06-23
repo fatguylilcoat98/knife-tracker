@@ -2,8 +2,12 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
 
+const ROLE_OPTIONS = ['employee', 'boss', 'admin']
+const ROLE_RANK = { admin: 3, boss: 2, employee: 1 }
+
 export default function BossTeam() {
-  const { user } = useAuth()
+  const { user, role } = useAuth()
+  const isAdmin = role === 'admin'
   const [people, setPeople] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -17,17 +21,20 @@ export default function BossTeam() {
       .order('role', { ascending: true })
       .order('full_name', { ascending: true })
     if (e) { setError(e.message); setLoading(false); return }
-    setPeople(data || [])
+    const sorted = (data || []).sort(
+      (a, b) => (ROLE_RANK[b.role] || 0) - (ROLE_RANK[a.role] || 0)
+    )
+    setPeople(sorted)
     setLoading(false)
   }
 
   useEffect(() => { load() }, [])
 
-  const setRole = async (id, role) => {
+  const setRole = async (id, newRole) => {
     setError(null); setInfo(null)
-    const { error: e } = await supabase.from('profiles').update({ role }).eq('id', id)
+    const { error: e } = await supabase.from('profiles').update({ role: newRole }).eq('id', id)
     if (e) { setError(e.message); return }
-    setPeople((prev) => prev.map((p) => p.id === id ? { ...p, role } : p))
+    setPeople((prev) => prev.map((p) => p.id === id ? { ...p, role: newRole } : p))
     setInfo('Role updated.')
   }
 
@@ -36,8 +43,9 @@ export default function BossTeam() {
       <div>
         <h1 className="ae-h1">Team</h1>
         <p className="ae-muted text-sm mt-1">
-          Everyone who has signed up. Promote a teammate to boss, or set them back
-          to employee. New sign-ups start as employees.
+          Everyone who has signed up. {isAdmin
+            ? 'As an admin you can set anyone’s role. New sign-ups start as employees.'
+            : 'Only admins can change roles.'}
         </p>
       </div>
 
@@ -60,22 +68,25 @@ export default function BossTeam() {
                 {p.email && <div className="ae-muted text-sm truncate">{p.email}</div>}
               </div>
               <div className="flex items-center gap-2">
-                <span className={`ae-chip ${p.role === 'boss' ? '!bg-emerald-100 !text-emerald-800' : ''}`}>
+                <span className={`ae-chip ${
+                  p.role === 'admin' ? '!bg-indigo-100 !text-indigo-800'
+                  : p.role === 'boss' ? '!bg-emerald-100 !text-emerald-800'
+                  : ''
+                }`}>
                   {p.role}
                 </span>
-                {p.role === 'employee' ? (
-                  <button className="ae-btn-secondary text-sm py-1.5 px-3" onClick={() => setRole(p.id, 'boss')}>
-                    Make boss
-                  </button>
-                ) : (
-                  <button
-                    className="ae-btn-secondary text-sm py-1.5 px-3"
+                {isAdmin && (
+                  <select
+                    className="ae-input !py-1.5 !w-auto text-sm"
+                    value={p.role}
                     disabled={p.id === user.id}
-                    title={p.id === user.id ? "You can't demote yourself" : undefined}
-                    onClick={() => setRole(p.id, 'employee')}
+                    title={p.id === user.id ? "You can't change your own role" : undefined}
+                    onChange={(e) => setRole(p.id, e.target.value)}
                   >
-                    Make employee
-                  </button>
+                    {ROLE_OPTIONS.map((r) => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </select>
                 )}
               </div>
             </div>

@@ -107,7 +107,7 @@ export default function App() {
     )
   }
 
-  if (role === 'boss') {
+  if (role === 'boss' || role === 'admin') {
     return (
       <div className="min-h-screen">
         <Header links={BOSS_LINKS} />

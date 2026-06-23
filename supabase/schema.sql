@@ -9,11 +9,15 @@ create extension if not exists "pgcrypto";
 -- =========================================================
 -- profiles (extends auth.users)
 -- =========================================================
+-- Roles, lowest to highest privilege:
+--   employee  field worker
+--   boss      operational management (accounts, routes, approvals, payroll)
+--   admin     everything a boss can do, plus managing everyone's roles
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   full_name text,
   email text,
-  role text not null default 'employee' check (role in ('boss', 'employee')),
+  role text not null default 'employee' check (role in ('admin', 'boss', 'employee')),
   theme_preference text default null check (theme_preference in ('classic', 'modern') or theme_preference is null),
   created_at timestamptz not null default now()
 );
@@ -21,17 +25,27 @@ create table if not exists public.profiles (
 -- Older databases may pre-date the email column; add it idempotently.
 alter table public.profiles add column if not exists email text;
 
+-- Widen the role check on databases created before the admin role existed.
+alter table public.profiles drop constraint if exists profiles_role_check;
+alter table public.profiles add constraint profiles_role_check
+  check (role in ('admin', 'boss', 'employee'));
+
 -- =========================================================
--- boss_emails — allowlist of addresses that become 'boss' on sign-up.
--- Add a row here to make someone a boss without touching code; the trigger
--- below reads this list, and there's a backfill at the bottom of the file.
+-- Role allowlists — addresses that get a role automatically on sign-up.
+-- admin_emails wins over boss_emails. Add a row to grant a role without code
+-- changes; the trigger reads these and there's a backfill at the end of file.
+-- Managed via SQL (or an admin), never the public API — see RLS below.
 -- =========================================================
 create table if not exists public.boss_emails (
   email text primary key
 );
+create table if not exists public.admin_emails (
+  email text primary key
+);
 
--- Seed the initial owner so their login lands in the boss console.
-insert into public.boss_emails (email)
+-- Seed the initial owner as admin so their login can drive and verify the whole
+-- app, including role management.
+insert into public.admin_emails (email)
 values ('stangman9898@gmail.com')
 on conflict (email) do nothing;
 
@@ -44,9 +58,13 @@ as $$
 declare
   resolved_role text;
 begin
-  select case when exists (
-    select 1 from public.boss_emails be where lower(be.email) = lower(new.email)
-  ) then 'boss' else 'employee' end into resolved_role;
+  if exists (select 1 from public.admin_emails ae where lower(ae.email) = lower(new.email)) then
+    resolved_role := 'admin';
+  elsif exists (select 1 from public.boss_emails be where lower(be.email) = lower(new.email)) then
+    resolved_role := 'boss';
+  else
+    resolved_role := 'employee';
+  end if;
 
   insert into public.profiles (id, full_name, email, role)
   values (
@@ -57,7 +75,11 @@ begin
   )
   on conflict (id) do update
     set email = excluded.email,
-        role = case when public.profiles.role = 'boss' then 'boss' else excluded.role end;
+        -- Never downgrade an existing elevated role on re-auth.
+        role = case
+          when public.profiles.role in ('admin', 'boss') then public.profiles.role
+          else excluded.role
+        end;
   return new;
 end;
 $$;
@@ -185,8 +207,11 @@ alter table public.route_accounts enable row level security;
 alter table public.submissions enable row level security;
 alter table public.submission_items enable row level security;
 alter table public.invoices enable row level security;
+alter table public.boss_emails enable row level security;
+alter table public.admin_emails enable row level security;
 
--- Helper: is the current user a boss?
+-- Helper: does the current user hold management rights (boss OR admin)?
+-- Admin is a superset of boss, so every boss-scoped policy applies to admins too.
 create or replace function public.is_boss()
 returns boolean
 language sql
@@ -195,9 +220,57 @@ security definer set search_path = public
 as $$
   select exists (
     select 1 from public.profiles
-    where id = auth.uid() and role = 'boss'
+    where id = auth.uid() and role in ('boss', 'admin')
   );
 $$;
+
+-- Helper: is the current user an admin (top role)?
+create or replace function public.is_admin()
+returns boolean
+language sql
+stable
+security definer set search_path = public
+as $$
+  select exists (
+    select 1 from public.profiles
+    where id = auth.uid() and role = 'admin'
+  );
+$$;
+
+-- Role changes are admin-only, enforced server-side regardless of who calls the
+-- API. Bosses can be granted operational management but cannot mint other
+-- bosses/admins or alter an admin.
+create or replace function public.enforce_profile_role_change()
+returns trigger
+language plpgsql
+security definer set search_path = public
+as $$
+begin
+  -- auth.uid() is null in trusted contexts (SQL editor, service role, the
+  -- signup trigger). Only gate role changes that come from a logged-in API user.
+  if new.role is distinct from old.role
+     and auth.uid() is not null
+     and not public.is_admin() then
+    raise exception 'Only admins can change roles';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_profile_role_change on public.profiles;
+create trigger on_profile_role_change
+  before update on public.profiles
+  for each row execute procedure public.enforce_profile_role_change();
+
+-- Allowlists: only admins may read or modify them via the API. The signup
+-- trigger reads them through SECURITY DEFINER, so it is unaffected.
+drop policy if exists boss_emails_admin_all on public.boss_emails;
+create policy boss_emails_admin_all on public.boss_emails
+  for all using (public.is_admin()) with check (public.is_admin());
+
+drop policy if exists admin_emails_admin_all on public.admin_emails;
+create policy admin_emails_admin_all on public.admin_emails
+  for all using (public.is_admin()) with check (public.is_admin());
 
 -- profiles policies
 drop policy if exists profiles_select_self_or_boss on public.profiles;
@@ -364,8 +437,9 @@ create policy invoices_storage_boss_all on storage.objects
   with check (bucket_id = 'invoices' and public.is_boss());
 
 -- =========================================================
--- Backfill: keep profile emails current and apply the boss allowlist to any
+-- Backfill: keep profile emails current and apply the role allowlists to any
 -- accounts that signed up before this migration ran. Safe to run repeatedly.
+-- admin_emails wins over boss_emails.
 -- =========================================================
 update public.profiles p
 set email = u.email
@@ -373,10 +447,19 @@ from auth.users u
 where u.id = p.id and (p.email is distinct from u.email);
 
 update public.profiles p
+set role = 'admin'
+from auth.users u
+where u.id = p.id
+  and p.role <> 'admin'
+  and exists (
+    select 1 from public.admin_emails ae where lower(ae.email) = lower(u.email)
+  );
+
+update public.profiles p
 set role = 'boss'
 from auth.users u
 where u.id = p.id
-  and p.role <> 'boss'
+  and p.role = 'employee'
   and exists (
     select 1 from public.boss_emails be where lower(be.email) = lower(u.email)
   );

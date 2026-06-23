@@ -15,7 +15,8 @@ payroll.
 - **Approvals** — review, approve, or flag submissions; export CSV or print.
 - **Payroll** — per-employee commission for a date range, using a configurable
   tiered commission schedule. Export CSV.
-- **Team** — see everyone who signed up; promote/demote between boss and employee.
+- **Team** — see everyone who signed up; admins set anyone's role (employee /
+  boss / admin).
 
 **Field console**
 - **Today** — your ordered stops, progress, and running day total.
@@ -35,17 +36,27 @@ Plus: light/dark themes, installable PWA, password reset, and an error boundary.
    policies, the commission schedule, the private `invoices` storage bucket, and
    the boss allowlist.
 
-### 2. Who becomes the boss
-New sign-ups are **employees** by default. Boss access is controlled by the
-`boss_emails` allowlist table. The schema seeds it with the initial owner:
+### 2. Roles and who becomes what
+There are three roles, lowest to highest privilege:
+
+- **employee** — field worker (the default for new sign-ups).
+- **boss** — operational management: accounts, routes, approvals, payroll.
+- **admin** — everything a boss can do, plus managing everyone's roles.
+
+Roles can be granted automatically on sign-up via two allowlist tables.
+`admin_emails` wins over `boss_emails`. The schema seeds the initial owner as
+**admin**:
 
 ```sql
-insert into public.boss_emails (email) values ('you@example.com');
+insert into public.admin_emails (email) values ('you@example.com');
+-- or, for a boss:
+insert into public.boss_emails (email)  values ('manager@example.com');
 ```
 
-Add a row for any address that should land in the boss console on sign-up. The
-schema also backfills the role for anyone who already signed up. Alternatively,
-an existing boss can promote teammates from the **Team** page.
+The schema also backfills roles for anyone who already signed up. After that,
+**admins** can change anyone's role from the **Team** page — no SQL needed.
+Role changes are enforced as admin-only at the database level (a trigger), so a
+boss can run operations but cannot mint other bosses or admins.
 
 ### 3. Environment
 Copy `.env.example` to `.env` and fill in:
