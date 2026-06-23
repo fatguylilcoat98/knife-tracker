@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { extractInvoiceFromImage } from '../lib/claude.js'
 import { formatMoney } from '../utils/csv.js'
+import AddressInput from './AddressInput.jsx'
 
 const EMPTY_ACCOUNT = { name: '', address: '', phone: '', payment_terms: '', notes: '' }
 
@@ -15,6 +16,8 @@ export default function BossAccounts() {
   const [form, setForm] = useState(EMPTY_ACCOUNT)
   const [ocrBusy, setOcrBusy] = useState(false)
   const [ocrError, setOcrError] = useState(null)
+  const [photoFile, setPhotoFile] = useState(null)      // scanned invoice, saved with the account
+  const [extractedJson, setExtractedJson] = useState(null)
 
   const load = async () => {
     setLoading(true); setError(null)
@@ -45,6 +48,8 @@ export default function BossAccounts() {
     setForm(EMPTY_ACCOUNT)
     setEditServices([{ service_name: '', price_per_unit: '' }])
     setOcrError(null)
+    setPhotoFile(null)
+    setExtractedJson(null)
   }
 
   const startEdit = (account) => {
@@ -60,10 +65,13 @@ export default function BossAccounts() {
       id: s.id, service_name: s.service_name, price_per_unit: String(s.price_per_unit)
     })))
     setOcrError(null)
+    setPhotoFile(null)
+    setExtractedJson(null)
   }
 
   const onPhoto = async (file) => {
     if (!file) return
+    setPhotoFile(file)
     setOcrBusy(true); setOcrError(null)
     const result = await extractInvoiceFromImage(file)
     setOcrBusy(false)
@@ -75,6 +83,7 @@ export default function BossAccounts() {
       return
     }
     const d = result.data || {}
+    setExtractedJson(d)
     setForm((f) => ({
       ...f,
       name: d.name || f.name,
@@ -128,6 +137,28 @@ export default function BossAccounts() {
       const { error: insErr } = await supabase.from('services').insert(validServices)
       if (insErr) { setError(insErr.message); return }
     }
+
+    // Persist the scanned invoice photo (if any) to the private bucket and
+    // record it. Non-fatal: a storage hiccup must not lose the account edits.
+    if (photoFile) {
+      try {
+        const ext = (photoFile.name?.split('.').pop() || 'jpg').toLowerCase()
+        const storagePath = `${accountId}/${Date.now()}.${ext}`
+        const { error: upErr } = await supabase
+          .storage
+          .from('invoices')
+          .upload(storagePath, photoFile, { contentType: photoFile.type || 'image/jpeg', upsert: false })
+        if (upErr) throw upErr
+        const { error: invErr } = await supabase
+          .from('invoices')
+          .insert([{ account_id: accountId, storage_path: storagePath, extracted_json: extractedJson }])
+        if (invErr) throw invErr
+      } catch (err) {
+        console.error('[invoices] save failed', err)
+        setOcrError(`Account saved, but the invoice photo could not be stored: ${err.message}`)
+      }
+    }
+
     setEditing(null)
     await load()
   }
@@ -226,7 +257,7 @@ export default function BossAccounts() {
               </div>
               <div>
                 <label className="ae-label">Address</label>
-                <input className="ae-input" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
+                <AddressInput value={form.address} onChange={(address) => setForm({ ...form, address })} />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>

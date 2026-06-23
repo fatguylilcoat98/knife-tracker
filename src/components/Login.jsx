@@ -4,7 +4,7 @@ import { useTheme } from '../contexts/ThemeContext.jsx'
 import { hasSupabaseConfig } from '../lib/supabase.js'
 
 export default function Login() {
-  const { signIn, signUp, authError } = useAuth()
+  const { signIn, signUp, sendPasswordReset, authError } = useAuth()
   const { theme, toggleTheme } = useTheme()
   const [mode, setMode] = useState('signin')
   const [email, setEmail] = useState('')
@@ -20,6 +20,10 @@ export default function Login() {
     try {
       if (mode === 'signin') {
         await signIn(email, password)
+      } else if (mode === 'reset') {
+        await sendPasswordReset(email)
+        setInfo('If that email has an account, a password reset link is on its way.')
+        setMode('signin')
       } else {
         await signUp(email, password, fullName)
         setInfo('Account created. Check your email if confirmation is required, then sign in.')
@@ -84,26 +88,48 @@ export default function Login() {
               required
             />
           </div>
-          <div>
-            <label className="ae-label" htmlFor="password">Password</label>
-            <input
-              id="password"
-              type="password"
-              autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
-              className="ae-input"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              minLength={6}
-              required
-            />
-          </div>
+          {mode !== 'reset' && (
+            <div>
+              <div className="flex items-center justify-between">
+                <label className="ae-label" htmlFor="password">Password</label>
+                {mode === 'signin' && (
+                  <button
+                    type="button"
+                    className="text-xs ae-muted underline"
+                    onClick={() => { setMode('reset'); setError(null); setInfo(null) }}
+                  >
+                    Forgot password?
+                  </button>
+                )}
+              </div>
+              <input
+                id="password"
+                type="password"
+                autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+                className="ae-input"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                minLength={6}
+                required
+              />
+            </div>
+          )}
+
+          {mode === 'reset' && (
+            <p className="ae-muted text-sm">
+              Enter your email and we'll send a link to set a new password.
+            </p>
+          )}
 
           {error && <div className="text-sm text-red-600">{error}</div>}
           {!error && authError && <div className="text-sm text-amber-600">{authError}</div>}
           {info && <div className="text-sm text-emerald-700">{info}</div>}
 
           <button type="submit" className="ae-btn w-full" disabled={busy}>
-            {busy ? 'Please wait…' : mode === 'signin' ? 'Sign in' : 'Create account'}
+            {busy ? 'Please wait…'
+              : mode === 'signin' ? 'Sign in'
+              : mode === 'reset' ? 'Send reset link'
+              : 'Create account'}
           </button>
 
           <div className="text-center text-sm ae-muted">
@@ -116,7 +142,7 @@ export default function Login() {
               </>
             ) : (
               <>
-                Already registered?{' '}
+                {mode === 'reset' ? 'Remembered it?' : 'Already registered?'}{' '}
                 <button type="button" className="underline" onClick={() => setMode('signin')}>
                   Sign in
                 </button>

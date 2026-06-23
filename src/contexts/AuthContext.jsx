@@ -14,13 +14,14 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [authError, setAuthError] = useState(null)
+  const [recovery, setRecovery] = useState(false)
 
   const loadProfile = useCallback(async (userId) => {
     if (!userId) { setProfile(null); return }
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, role, theme_preference')
+        .select('id, full_name, email, role, theme_preference')
         .eq('id', userId)
         .maybeSingle()
       if (error) {
@@ -69,7 +70,10 @@ export function AuthProvider({ children }) {
       }
     })()
 
-    const { data: sub } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
+    const { data: sub } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+      // Supabase fires PASSWORD_RECOVERY when a user opens the reset link. We
+      // flag it so the app can show the "set a new password" screen.
+      if (event === 'PASSWORD_RECOVERY') setRecovery(true)
       setSession(newSession)
       if (newSession?.user?.id) {
         await loadProfile(newSession.user.id)
@@ -112,6 +116,19 @@ export function AuthProvider({ children }) {
     if (session?.user?.id) await loadProfile(session.user.id)
   }
 
+  const sendPasswordReset = async (email) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin
+    })
+    if (error) throw error
+  }
+
+  const updatePassword = async (newPassword) => {
+    const { error } = await supabase.auth.updateUser({ password: newPassword })
+    if (error) throw error
+    setRecovery(false)
+  }
+
   return (
     <AuthContext.Provider value={{
       session,
@@ -120,10 +137,13 @@ export function AuthProvider({ children }) {
       role: profile?.role ?? null,
       loading,
       authError,
+      recovery,
       signIn,
       signUp,
       signOut,
-      refreshProfile
+      refreshProfile,
+      sendPasswordReset,
+      updatePassword
     }}>
       {children}
     </AuthContext.Provider>

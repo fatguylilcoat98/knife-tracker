@@ -12,10 +12,28 @@ create extension if not exists "pgcrypto";
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   full_name text,
+  email text,
   role text not null default 'employee' check (role in ('boss', 'employee')),
   theme_preference text default null check (theme_preference in ('classic', 'modern') or theme_preference is null),
   created_at timestamptz not null default now()
 );
+
+-- Older databases may pre-date the email column; add it idempotently.
+alter table public.profiles add column if not exists email text;
+
+-- =========================================================
+-- boss_emails — allowlist of addresses that become 'boss' on sign-up.
+-- Add a row here to make someone a boss without touching code; the trigger
+-- below reads this list, and there's a backfill at the bottom of the file.
+-- =========================================================
+create table if not exists public.boss_emails (
+  email text primary key
+);
+
+-- Seed the initial owner so their login lands in the boss console.
+insert into public.boss_emails (email)
+values ('stangman9898@gmail.com')
+on conflict (email) do nothing;
 
 -- Auto-create a profile row for every new auth user.
 create or replace function public.handle_new_user()
@@ -23,10 +41,23 @@ returns trigger
 language plpgsql
 security definer set search_path = public
 as $$
+declare
+  resolved_role text;
 begin
-  insert into public.profiles (id, full_name, role)
-  values (new.id, coalesce(new.raw_user_meta_data->>'full_name', new.email), 'employee')
-  on conflict (id) do nothing;
+  select case when exists (
+    select 1 from public.boss_emails be where lower(be.email) = lower(new.email)
+  ) then 'boss' else 'employee' end into resolved_role;
+
+  insert into public.profiles (id, full_name, email, role)
+  values (
+    new.id,
+    coalesce(new.raw_user_meta_data->>'full_name', new.email),
+    new.email,
+    resolved_role
+  )
+  on conflict (id) do update
+    set email = excluded.email,
+        role = case when public.profiles.role = 'boss' then 'boss' else excluded.role end;
   return new;
 end;
 $$;
@@ -58,6 +89,26 @@ create table if not exists public.services (
 );
 create index if not exists idx_services_account on public.services(account_id);
 
+-- commission_tiers (boss-configurable payroll schedule)
+-- Each row says: once an employee's approved sales for the period reach
+-- min_sales, they earn rate_percent on the whole period's sales. The highest
+-- tier whose min_sales is met wins.
+create table if not exists public.commission_tiers (
+  id uuid primary key default gen_random_uuid(),
+  min_sales numeric(12,2) not null default 0,
+  rate_percent numeric(5,2) not null default 0
+);
+
+-- Seed a sensible default schedule only when the table is empty.
+insert into public.commission_tiers (min_sales, rate_percent)
+select * from (values
+  (0::numeric, 20.00::numeric),
+  (1000::numeric, 22.50::numeric),
+  (2500::numeric, 25.00::numeric),
+  (5000::numeric, 30.00::numeric)
+) as seed(min_sales, rate_percent)
+where not exists (select 1 from public.commission_tiers);
+
 -- routes
 create table if not exists public.routes (
   id uuid primary key default gen_random_uuid(),
@@ -67,6 +118,11 @@ create table if not exists public.routes (
   created_at timestamptz not null default now()
 );
 create index if not exists idx_routes_employee_date on public.routes(employee_id, route_date);
+
+-- One route per employee per day. Guards against duplicate routes created by
+-- two devices/tabs racing in the route builder.
+create unique index if not exists uq_routes_employee_date
+  on public.routes(employee_id, route_date);
 
 -- route_accounts (the stops on a route)
 create table if not exists public.route_accounts (
@@ -89,6 +145,12 @@ create table if not exists public.submissions (
 );
 create index if not exists idx_submissions_status on public.submissions(status);
 create index if not exists idx_submissions_employee on public.submissions(employee_id);
+
+-- One submission per employee per stop. The app replaces (delete + re-insert)
+-- when an employee edits a flagged stop, so this stays satisfied while blocking
+-- accidental duplicates from offline replays or double taps.
+create unique index if not exists uq_submissions_route_account_employee
+  on public.submissions(route_account_id, employee_id);
 
 -- submission_items
 create table if not exists public.submission_items (
@@ -117,6 +179,7 @@ create index if not exists idx_invoices_created on public.invoices(created_at);
 alter table public.profiles enable row level security;
 alter table public.accounts enable row level security;
 alter table public.services enable row level security;
+alter table public.commission_tiers enable row level security;
 alter table public.routes enable row level security;
 alter table public.route_accounts enable row level security;
 alter table public.submissions enable row level security;
@@ -182,6 +245,16 @@ create policy services_employee_read on public.services
         and r.employee_id = auth.uid()
     )
   );
+
+-- commission_tiers: boss manages the schedule; employees can read it so the
+-- app can show them their own estimated earnings.
+drop policy if exists commission_tiers_boss_all on public.commission_tiers;
+create policy commission_tiers_boss_all on public.commission_tiers
+  for all using (public.is_boss()) with check (public.is_boss());
+
+drop policy if exists commission_tiers_read on public.commission_tiers;
+create policy commission_tiers_read on public.commission_tiers
+  for select using (auth.uid() is not null);
 
 -- routes
 drop policy if exists routes_boss_all on public.routes;
@@ -273,3 +346,37 @@ $$;
 
 -- Optional: pg_cron schedule (uncomment if pg_cron is enabled)
 -- select cron.schedule('prune-invoices-daily', '0 3 * * *', $$select public.prune_old_invoices();$$);
+
+-- =========================================================
+-- Storage: private bucket for invoice photos.
+-- The app uploads the scanned photo here and records storage_path on the
+-- invoices row. prune_old_invoices() removes the DB rows; pair it with a
+-- storage lifecycle rule (or extend the prune function) to delete the objects.
+-- =========================================================
+insert into storage.buckets (id, name, public)
+values ('invoices', 'invoices', false)
+on conflict (id) do nothing;
+
+drop policy if exists invoices_storage_boss_all on storage.objects;
+create policy invoices_storage_boss_all on storage.objects
+  for all
+  using (bucket_id = 'invoices' and public.is_boss())
+  with check (bucket_id = 'invoices' and public.is_boss());
+
+-- =========================================================
+-- Backfill: keep profile emails current and apply the boss allowlist to any
+-- accounts that signed up before this migration ran. Safe to run repeatedly.
+-- =========================================================
+update public.profiles p
+set email = u.email
+from auth.users u
+where u.id = p.id and (p.email is distinct from u.email);
+
+update public.profiles p
+set role = 'boss'
+from auth.users u
+where u.id = p.id
+  and p.role <> 'boss'
+  and exists (
+    select 1 from public.boss_emails be where lower(be.email) = lower(u.email)
+  );

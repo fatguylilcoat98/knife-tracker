@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { todayIso, formatMoney } from '../utils/csv.js'
+import { pendingCount } from '../lib/offlineQueue.js'
 
 export default function EmployeeToday() {
   const { user } = useAuth()
@@ -10,6 +11,18 @@ export default function EmployeeToday() {
   const [stops, setStops] = useState([])             // [{ ra, account, submission }]
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [pending, setPending] = useState(pendingCount())
+
+  useEffect(() => {
+    const update = () => setPending(pendingCount())
+    update()
+    window.addEventListener('online', update)
+    window.addEventListener('focus', update)
+    return () => {
+      window.removeEventListener('online', update)
+      window.removeEventListener('focus', update)
+    }
+  }, [])
 
   useEffect(() => {
     let mounted = true
@@ -62,6 +75,12 @@ export default function EmployeeToday() {
       </div>
 
       {error && <div className="ae-card p-3 text-sm text-red-600">{error}</div>}
+
+      {pending > 0 && (
+        <div className="ae-card p-3 text-sm text-amber-600">
+          {pending} submission{pending === 1 ? '' : 's'} saved offline — they'll sync automatically when you're back online.
+        </div>
+      )}
 
       {loading ? (
         <div className="ae-muted">Loading…</div>
