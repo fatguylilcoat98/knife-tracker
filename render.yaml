@@ -1,8 +1,8 @@
 # Render Blueprint — Accurate Edges Node web service
 #
 # Builds the Vite bundle, then runs server.js (Express). server.js serves the
-# SPA from ./dist AND hosts /api/extract-invoice, which proxies invoice photos
-# to Claude Vision so the API key stays off the client.
+# SPA from ./dist AND hosts /api/extract-invoice and /api/translate, which proxy
+# to Claude (Vision + translation) so the API key stays off the client.
 #
 # Required env vars (set them in the Render dashboard, marked sync: false):
 #   - VITE_SUPABASE_URL          (baked into the SPA at build time)
@@ -28,4 +28,7 @@ services:
       - key: VITE_SUPABASE_ANON_KEY
         sync: false
       - key: ANTHROPIC_API_KEY
+        sync: false
+      # Optional: enables address autocomplete. Leave unset to skip.
+      - key: VITE_GOOGLE_MAPS_API_KEY
         sync: false

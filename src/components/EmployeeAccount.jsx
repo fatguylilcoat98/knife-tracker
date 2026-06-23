@@ -3,6 +3,8 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase.js'
 import { useAuth } from '../contexts/AuthContext.jsx'
 import { formatMoney } from '../utils/csv.js'
+import { submitStopToServer } from '../lib/submitStop.js'
+import { enqueueSubmission, isOffline } from '../lib/offlineQueue.js'
 
 export default function EmployeeAccount() {
   const { routeAccountId } = useParams()
@@ -73,43 +75,46 @@ export default function EmployeeAccount() {
   const submit = async () => {
     if (readOnly) return
     setBusy(true); setError(null)
+
+    const items = services
+      .map((s) => {
+        const q = Number(quantities[s.service_name] || 0)
+        if (!q) return null
+        return {
+          service_name: s.service_name,
+          quantity: q,
+          unit_price: Number(s.price_per_unit || 0),
+          line_total: q * Number(s.price_per_unit || 0)
+        }
+      })
+      .filter(Boolean)
+
+    const payload = {
+      routeAccountId,
+      employeeId: user.id,
+      total,
+      notes: notes || null,
+      items
+    }
+
+    // Offline (or a failed network write): queue it and let the app replay when
+    // connectivity returns, so a field submit is never silently lost.
+    if (isOffline()) {
+      enqueueSubmission(payload)
+      setBusy(false)
+      navigate('/')
+      return
+    }
+
     try {
-      // If existing flagged submission, replace it: delete and re-insert.
-      if (existing) {
-        const { error: delErr } = await supabase.from('submissions').delete().eq('id', existing.id)
-        if (delErr) throw delErr
-      }
-      const { data: sub, error: e } = await supabase
-        .from('submissions')
-        .insert([{
-          route_account_id: routeAccountId,
-          employee_id: user.id,
-          status: 'pending',
-          total_amount: total,
-          notes: notes || null
-        }])
-        .select()
-        .single()
-      if (e) throw e
-      const items = services
-        .map((s) => {
-          const q = Number(quantities[s.service_name] || 0)
-          if (!q) return null
-          return {
-            submission_id: sub.id,
-            service_name: s.service_name,
-            quantity: q,
-            unit_price: Number(s.price_per_unit || 0),
-            line_total: q * Number(s.price_per_unit || 0)
-          }
-        })
-        .filter(Boolean)
-      if (items.length) {
-        const { error: e2 } = await supabase.from('submission_items').insert(items)
-        if (e2) throw e2
-      }
+      await submitStopToServer(payload)
       navigate('/')
     } catch (err) {
+      if (isOffline()) {
+        enqueueSubmission(payload)
+        navigate('/')
+        return
+      }
       setError(err.message || 'Submission failed')
     } finally {
       setBusy(false)

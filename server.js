@@ -31,11 +31,60 @@ Return STRICT JSON with this shape and nothing else:
 }
 If a field is unreadable, return null. Never invent prices.`
 
+const TRANSLATE_SYSTEM_PROMPT = `You are a translator for Accurate Edges, a knife sharpening business.
+Translate the user's text between English and Spanish. Use correct trade terms
+for blades, knives, scissors, and sharpening. Output ONLY the translation —
+no quotes, no notes, no explanation.`
+
 const app = express()
 app.disable('x-powered-by')
 app.use(express.json({ limit: '12mb' }))
 
 app.get('/healthz', (_req, res) => res.json({ ok: true }))
+
+app.post('/api/translate', async (req, res) => {
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (!apiKey) {
+    res.status(503).json({ ok: false, error: 'ANTHROPIC_API_KEY is not set on the server' })
+    return
+  }
+  const { text, target } = req.body || {}
+  if (!text || !String(text).trim()) {
+    res.status(400).json({ ok: false, error: 'Missing text' })
+    return
+  }
+  const direction = target === 'en'
+    ? 'Translate this Spanish text to English.'
+    : 'Translate this English text to Spanish.'
+
+  try {
+    const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1024,
+        system: TRANSLATE_SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: `${direction}\n\n${text}` }]
+      })
+    })
+    if (!anthropicRes.ok) {
+      const errText = await anthropicRes.text()
+      res.status(502).json({ ok: false, error: `Claude API error: ${errText}` })
+      return
+    }
+    const payload = await anthropicRes.json()
+    const textBlock = (payload?.content || []).find((b) => b.type === 'text')
+    const translation = (textBlock?.text || '').trim()
+    res.status(200).json({ ok: true, translation })
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message })
+  }
+})
 
 app.post('/api/extract-invoice', async (req, res) => {
   const apiKey = process.env.ANTHROPIC_API_KEY

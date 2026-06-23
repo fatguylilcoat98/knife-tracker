@@ -3,25 +3,33 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './contexts/AuthContext.jsx'
 import { supabase } from './lib/supabase.js'
 import Login from './components/Login.jsx'
+import SetNewPassword from './components/SetNewPassword.jsx'
 import Header from './components/Header.jsx'
 import BossAccounts from './components/BossAccounts.jsx'
 import BossRouteBuilder from './components/BossRouteBuilder.jsx'
 import BossApprovals from './components/BossApprovals.jsx'
+import BossPayroll from './components/BossPayroll.jsx'
+import BossTeam from './components/BossTeam.jsx'
 import EmployeeToday from './components/EmployeeToday.jsx'
 import EmployeeAccount from './components/EmployeeAccount.jsx'
 import EmployeeHistory from './components/EmployeeHistory.jsx'
+import Translate from './components/Translate.jsx'
 import Settings from './components/Settings.jsx'
+import { flushQueue } from './lib/offlineQueue.js'
 
 const BOSS_LINKS = [
   { to: '/', label: 'Accounts', end: true },
   { to: '/routes', label: 'Route builder' },
   { to: '/approvals', label: 'Approvals' },
+  { to: '/payroll', label: 'Payroll' },
+  { to: '/team', label: 'Team' },
   { to: '/settings', label: 'Settings' }
 ]
 
 const EMPLOYEE_LINKS = [
   { to: '/', label: 'Today', end: true },
   { to: '/history', label: 'History' },
+  { to: '/translate', label: 'Translate' },
   { to: '/settings', label: 'Settings' }
 ]
 
@@ -64,11 +72,24 @@ function LoadingSplash() {
 }
 
 export default function App() {
-  const { loading, user, role } = useAuth()
+  const { loading, user, role, recovery } = useAuth()
+
+  // Flush any queued offline submissions when we have a session and whenever
+  // the device comes back online.
+  useEffect(() => {
+    if (!user) return
+    flushQueue()
+    const onOnline = () => flushQueue()
+    window.addEventListener('online', onOnline)
+    return () => window.removeEventListener('online', onOnline)
+  }, [user])
 
   if (loading) {
     return <LoadingSplash />
   }
+
+  // A password-recovery link takes priority over everything else.
+  if (recovery) return <SetNewPassword />
 
   if (!user) return <Login />
 
@@ -86,7 +107,7 @@ export default function App() {
     )
   }
 
-  if (role === 'boss') {
+  if (role === 'boss' || role === 'admin') {
     return (
       <div className="min-h-screen">
         <Header links={BOSS_LINKS} />
@@ -95,6 +116,8 @@ export default function App() {
             <Route path="/" element={<BossAccounts />} />
             <Route path="/routes" element={<BossRouteBuilder />} />
             <Route path="/approvals" element={<BossApprovals />} />
+            <Route path="/payroll" element={<BossPayroll />} />
+            <Route path="/team" element={<BossTeam />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
@@ -111,6 +134,7 @@ export default function App() {
           <Route path="/" element={<EmployeeToday />} />
           <Route path="/stop/:routeAccountId" element={<EmployeeAccount />} />
           <Route path="/history" element={<EmployeeHistory />} />
+          <Route path="/translate" element={<Translate />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

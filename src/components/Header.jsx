@@ -41,7 +41,9 @@ export default function Header({ links }) {
               Accurate Edges
             </div>
             <div className="text-[10px] sm:text-[11px] ae-muted uppercase tracking-wider">
-              {profile?.role === 'boss' ? 'Boss console' : 'Field console'}
+              {profile?.role === 'admin' ? 'Admin console'
+                : profile?.role === 'boss' ? 'Boss console'
+                : 'Field console'}
             </div>
           </div>
         </div>
